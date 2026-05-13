@@ -11,6 +11,7 @@ export type Student = {
   id: string;
   name: string;
   email: string;
+  password: string;
   credits: number;
 };
 
@@ -53,14 +54,21 @@ export function setSession(s: Student | null) {
   if (s) write(SESSION_KEY, s); else if (typeof window !== "undefined") localStorage.removeItem(SESSION_KEY);
 }
 
-export function loginOrRegister(name: string, email: string): Student {
+export function login(email: string, password: string): Student {
+  const s = getStudents().find((x) => x.email.toLowerCase() === email.toLowerCase());
+  if (!s) throw new Error("Email não cadastrado.");
+  if (s.password !== password) throw new Error("Senha incorreta.");
+  setSession(s);
+  return s;
+}
+
+export function register(name: string, email: string, password: string): Student {
   const students = getStudents();
-  let s = students.find((x) => x.email.toLowerCase() === email.toLowerCase());
-  if (!s) {
-    s = { id: crypto.randomUUID(), name, email, credits: 8 };
-    students.push(s);
-    saveStudents(students);
-  }
+  if (students.some((x) => x.email.toLowerCase() === email.toLowerCase()))
+    throw new Error("Email já cadastrado. Faça login.");
+  const s: Student = { id: crypto.randomUUID(), name, email, password, credits: 8 };
+  students.push(s);
+  saveStudents(students);
   setSession(s);
   return s;
 }

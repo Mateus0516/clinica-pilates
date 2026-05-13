@@ -10,7 +10,8 @@ import {
   getBookings,
   getSession,
   getWeekDates,
-  loginOrRegister,
+  login,
+  register,
   saveBookings,
   setSession,
   updateStudent,
@@ -49,8 +50,31 @@ function Index() {
 }
 
 function Login({ onLogin }: { onLogin: (s: Student) => void }) {
+  const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (mode === "signup") {
+        if (!name.trim() || !email.trim() || password.length < 4)
+          throw new Error("Preencha nome, email e senha (mín. 4 caracteres).");
+        const s = register(name.trim(), email.trim(), password);
+        onLogin(s);
+        toast.success(`Conta criada! Bem-vindo(a), ${s.name}.`);
+      } else {
+        if (!email.trim() || !password) throw new Error("Informe email e senha.");
+        const s = login(email.trim(), password);
+        onLogin(s);
+        toast.success(`Olá novamente, ${s.name}!`);
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao entrar");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-accent/40 via-background to-secondary">
       <Card className="w-full max-w-md p-8 shadow-xl">
@@ -61,26 +85,45 @@ function Login({ onLogin }: { onLogin: (s: Student) => void }) {
           <h1 className="text-2xl font-bold">Studio Pilates</h1>
           <p className="text-sm text-muted-foreground">Autoatendimento do aluno</p>
         </div>
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!name.trim() || !email.trim()) return toast.error("Preencha nome e email");
-            const s = loginOrRegister(name.trim(), email.trim());
-            onLogin(s);
-            toast.success(`Bem-vindo(a), ${s.name}!`);
-          }}
-        >
-          <div className="space-y-2">
-            <Label htmlFor="name">Nome</Label>
-            <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
-          </div>
+
+        <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg mb-6">
+          <button
+            type="button"
+            onClick={() => setMode("login")}
+            className={`py-2 text-sm font-medium rounded-md transition ${mode === "login" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("signup")}
+            className={`py-2 text-sm font-medium rounded-md transition ${mode === "signup" ? "bg-background shadow-sm" : "text-muted-foreground"}`}
+          >
+            Cadastrar
+          </button>
+        </div>
+
+        <form className="space-y-4" onSubmit={submit}>
+          {mode === "signup" && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Nome</Label>
+              <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" maxLength={80} />
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" />
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" maxLength={120} />
           </div>
-          <Button type="submit" className="w-full">Entrar</Button>
-          <p className="text-xs text-muted-foreground text-center">Novos alunos ganham 8 créditos de boas-vindas.</p>
+          <div className="space-y-2">
+            <Label htmlFor="password">Senha</Label>
+            <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" maxLength={64} />
+          </div>
+          <Button type="submit" className="w-full">
+            {mode === "signup" ? "Criar conta" : "Entrar"}
+          </Button>
+          {mode === "signup" && (
+            <p className="text-xs text-muted-foreground text-center">Novos alunos ganham 8 créditos de boas-vindas.</p>
+          )}
         </form>
       </Card>
     </div>
