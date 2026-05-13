@@ -218,8 +218,8 @@ function Dashboard({
             ))}
 
             {TIME_SLOTS.map((time) => (
-              <>
-                <div key={time + "-l"} className="flex items-center justify-end pr-2 text-sm text-muted-foreground">
+              <FragmentRow key={time}>
+                <div className="flex items-center justify-end pr-2 text-sm text-muted-foreground">
                   {time}
                 </div>
                 {week.map((d, i) => {
@@ -269,7 +269,7 @@ function Dashboard({
                     </div>
                   );
                 })}
-              </>
+              </FragmentRow>
             ))}
           </div>
         </div>
@@ -286,6 +286,10 @@ function Dashboard({
       </p>
     </div>
   );
+}
+
+function FragmentRow({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 function Legend({ color, label }: { color: string; label: string }) {
