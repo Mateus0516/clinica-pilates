@@ -1,65 +1,101 @@
-# 🧘 Clínica Pilates — Sistema de Autoatendimento
+# 🧘 Clínica Pilates — Sistema de Gestão e Autoatendimento
 
-Sistema desenvolvido para gerenciamento e autoatendimento de alunos de um Studio de Pilates.
+Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de um Studio de Pilates.
 
-O projeto possui:
-- Frontend em React + TypeScript
-- Backend em Spring Boot (Java)
-- Banco de dados MySQL
-- Docker para containerização
-- Swagger para documentação da API
+O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de Engenharia de Software, Arquitetura em Camadas, APIs REST, Banco de Dados, Docker e Documentação de Software.
 
 ---
 
 # 📌 Funcionalidades
 
-✅ Cadastro de alunos  
-✅ Login de usuários  
-✅ Integração Frontend + Backend  
-✅ API REST documentada com Swagger  
-✅ Persistência de dados em MySQL  
-✅ Banco rodando em container Docker  
-✅ Arquitetura separada em camadas  
-✅ Estrutura preparada para CRUD completo  
+✅ Cadastro de alunos
+
+✅ Login com autenticação segura utilizando BCrypt
+
+✅ Consulta de usuários cadastrados
+
+✅ Atualização de dados cadastrais
+
+✅ Exclusão de usuários
+
+✅ Integração Frontend + Backend
+
+✅ API REST documentada com Swagger
+
+✅ Persistência de dados em MySQL
+
+✅ Banco de dados executando em container Docker
+
+✅ Tratamento de erros e exceções
+
+✅ Testes automatizados
 
 ---
 
 # 🛠 Tecnologias Utilizadas
 
 ## Frontend
-- React
-- TypeScript
-- Vite
-- TailwindCSS
+
+* React
+* TypeScript
+* Vite
+* TailwindCSS
 
 ## Backend
-- Java 21
-- Spring Boot
-- Spring Data JPA
-- Maven
+
+* Java 17
+* Spring Boot
+* Spring Data JPA
+* Hibernate
+* Maven
 
 ## Banco de Dados
-- MySQL
-- Docker
+
+* MySQL
+* Docker
 
 ## Documentação
-- Swagger OpenAPI
+
+* Swagger OpenAPI
+
+## Testes
+
+* JUnit 5
+* Spring Boot Test
+
+---
+
+# 🏗 Arquitetura do Projeto
+
+O backend foi desenvolvido utilizando arquitetura em camadas:
+
+* Controller
+* Service
+* Repository
+* Model
+* Config
+
+Essa organização facilita manutenção, escalabilidade e reutilização do código.
 
 ---
 
 # 📂 Estrutura do Projeto
 
-```bash
+```text
 clinica-pilates/
 │
-├── src/                     # Frontend
+├── src/                        # Frontend React
 │
 ├── clinica-backend/
 │   ├── src/main/java/
-│   ├── src/main/resources/
+│   │   ├── controller/
+│   │   ├── service/
+│   │   ├── repository/
+│   │   ├── model/
+│   │   └── config/
+│   │
+│   ├── src/test/java/
 │   └── pom.xml
-│
-├── docker-compose.yml
 │
 └── README.md
 ```
@@ -68,15 +104,13 @@ clinica-pilates/
 
 # 🚀 Como Executar o Projeto
 
-## 1️⃣ Clonar o repositório
+## 1. Clonar o repositório
 
 ```bash
 git clone https://github.com/Mateus0516/clinica-pilates.git
 ```
 
----
-
-## 2️⃣ Entrar na pasta do projeto
+## 2. Entrar na pasta do projeto
 
 ```bash
 cd clinica-pilates
@@ -84,65 +118,47 @@ cd clinica-pilates
 
 ---
 
-# 🐳 3️⃣ Rodar o banco de dados com Docker
+# 🐳 Banco de Dados (Docker)
+
+Executar o container MySQL:
 
 ```bash
-docker compose up -d
+docker start clinica-mysql
+```
+
+Verificar containers ativos:
+
+```bash
+docker ps
 ```
 
 ---
 
-# ⚙️ 4️⃣ Rodar o Backend
-
-Abrir outro terminal:
+# ⚙️ Executar o Backend
 
 ```bash
 cd clinica-backend/clinica-backend
-```
-
-Rodar:
-
-```bash
 mvn spring-boot:run
 ```
 
 Backend disponível em:
 
-```bash
+```text
 http://localhost:8080
 ```
 
 ---
 
-# 🌐 5️⃣ Rodar o Frontend
-
-Abrir outro terminal:
-
-```bash
-cd clinica-pilates
-```
-
-Instalar dependências:
+# 🌐 Executar o Frontend
 
 ```bash
 npm install
-```
-
-Rodar projeto:
-
-```bash
 npm run dev
 ```
 
 Frontend disponível em:
 
-```bash
-http://localhost:3000
-```
-
-ou
-
-```bash
+```text
 http://localhost:5173
 ```
 
@@ -152,7 +168,7 @@ http://localhost:5173
 
 Documentação da API:
 
-```bash
+```text
 http://localhost:8080/swagger-ui/index.html
 ```
 
@@ -162,55 +178,121 @@ http://localhost:8080/swagger-ui/index.html
 
 Banco utilizado:
 
-```bash
+```text
 MySQL
 ```
 
-Nome do banco:
+Nome:
 
-```bash
+```text
 clinica_db
 ```
 
-Container Docker:
+Container:
 
-```bash
+```text
 clinica-mysql
+```
+
+Porta:
+
+```text
+3307
 ```
 
 ---
 
-# 🔐 Endpoints Principais
+# 🔐 Principais Endpoints
 
-## Cadastro
+### Cadastro de Usuário
 
 ```http
 POST /auth/register
 ```
 
-## Login
+### Login
 
 ```http
 POST /auth/login
 ```
 
+### Listar Usuários
+
+```http
+GET /auth/usuarios
+```
+
+### Buscar Usuário por ID
+
+```http
+GET /auth/usuarios/{id}
+```
+
+### Atualizar Usuário
+
+```http
+PUT /auth/usuarios/{id}
+```
+
+### Excluir Usuário
+
+```http
+DELETE /auth/usuarios/{id}
+```
+
 ---
 
-# 📋 Requisitos do Projeto Atendidos
+# 🧪 Testes Automatizados
 
-✅ Levantamento de requisitos  
-✅ Diagramas UML  
-✅ API REST  
-✅ Swagger documentado  
-✅ Banco de dados com ORM  
-✅ Docker  
-✅ Integração Frontend + Backend  
-✅ Arquitetura organizada  
-✅ README do projeto  
+O projeto possui testes automatizados utilizando JUnit 5.
+
+Resultado obtido:
+
+```text
+Tests run: 5
+Failures: 0
+Errors: 0
+BUILD SUCCESS
+```
+
+---
+
+# 📋 Requisitos Atendidos
+
+✅ Documento de Requisitos de Negócio (BRD)
+
+✅ Documento de Especificação de Requisitos (ERS/SRS)
+
+✅ Planejamento e Cronograma
+
+✅ Diagramas UML
+
+✅ API REST
+
+✅ CRUD Completo
+
+✅ Swagger Documentado
+
+✅ Tratamento de Erros
+
+✅ Testes Automatizados
+
+✅ Banco de Dados com ORM (JPA/Hibernate)
+
+✅ Docker
+
+✅ Integração Frontend + Backend
+
+✅ Arquitetura Organizada
+
+✅ Clean Code
+
+✅ README do Projeto
 
 ---
 
 # 👨‍💻 Desenvolvido por
 
-Mateus Rodrigues  
-Projeto Agendamento — Sistema de Clínica de Pilates
+Mateus Rodrigues
+
+Projeto — Sistema de Gestão para Clínica de Pilates.
