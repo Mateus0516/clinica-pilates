@@ -1,6 +1,7 @@
 package com.clinica.backend.service;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -51,5 +52,27 @@ public class AuthService {
         resposta.put("perfil", usuario.getPerfil());
 
         return resposta;
+    }
+
+    public List<Usuario> listarUsuarios() {
+        return usuarioRepository.findAll();
+    }
+
+    public Usuario atualizarUsuario(Long id, String nome, String email) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+
+        usuario.setNome(nome);
+        usuario.setEmail(email);
+
+        return usuarioRepository.save(usuario);
+    }
+
+    public void deletarUsuario(Long id) {
+        if (!usuarioRepository.existsById(id)) {
+            throw new RuntimeException("Usuário não encontrado");
+        }
+
+        usuarioRepository.deleteById(id);
     }
 }

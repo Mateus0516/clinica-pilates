@@ -47,6 +47,7 @@ function Index() {
   return (
     <div className="min-h-screen bg-background">
       <Toaster richColors position="top-center" />
+
       {student ? (
         <Dashboard
           student={student}
@@ -82,16 +83,24 @@ function Login({ onLogin }: { onLogin: (s: Student) => void }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            nome: name,
-            email,
-            senha: password,
-          }),
+          body: JSON.stringify(
+            mode === "signup"
+              ? {
+                  nome: name,
+                  email,
+                  senha: password,
+                }
+              : {
+                  email,
+                  senha: password,
+                }
+          ),
         }
       );
 
       if (!response.ok) {
-        throw new Error("Erro ao conectar com o servidor");
+        const erroData = await response.json();
+        throw new Error(erroData.erro || "Erro ao processar a requisição");
       }
 
       const data = await response.json();
@@ -101,6 +110,7 @@ function Login({ onLogin }: { onLogin: (s: Student) => void }) {
         name: data.nome || name,
         email: data.email || email,
         credits: 8,
+        password: "",
       };
 
       setSession(studentData);
@@ -112,9 +122,7 @@ function Login({ onLogin }: { onLogin: (s: Student) => void }) {
           : "Login realizado com sucesso!"
       );
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao conectar"
-      );
+      toast.error(err instanceof Error ? err.message : "Erro ao conectar");
     }
   };
 
@@ -125,7 +133,9 @@ function Login({ onLogin }: { onLogin: (s: Student) => void }) {
           <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-3">
             <CalendarDays className="w-7 h-7 text-primary" />
           </div>
+
           <h1 className="text-2xl font-bold">Studio Pilates</h1>
+
           <p className="text-sm text-muted-foreground">
             Autoatendimento do aluno
           </p>
@@ -302,6 +312,7 @@ function Dashboard({
           <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center">
             <CalendarDays className="w-6 h-6 text-primary" />
           </div>
+
           <div>
             <h1 className="text-xl font-bold leading-tight">Studio Pilates</h1>
             <p className="text-sm text-muted-foreground">
@@ -327,6 +338,7 @@ function Dashboard({
       {myBookings.length > 0 && (
         <Card className="p-4 mb-6">
           <h2 className="font-semibold mb-3">Minhas próximas aulas</h2>
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {myBookings
               .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time))
@@ -344,6 +356,7 @@ function Dashboard({
                       })}{" "}
                       • {b.time}
                     </div>
+
                     <div className="text-muted-foreground text-xs">
                       Instrutor(a) {b.instructor}
                     </div>
@@ -402,6 +415,7 @@ function Dashboard({
                 <div className="text-xs text-muted-foreground uppercase">
                   {WEEKDAYS[i]}
                 </div>
+
                 <div className="font-semibold">
                   {d.getDate().toString().padStart(2, "0")}
                 </div>
@@ -465,6 +479,7 @@ function Dashboard({
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="font-medium">{inst}</span>
+
                               <span className="flex items-center gap-0.5">
                                 {mine && <Check className="w-3 h-3" />}
                                 {slotBookings.length}/{MAX_PER_SLOT}
