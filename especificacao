@@ -1,0 +1,188 @@
+# Sistema de Gestão para Clínica de Pilates
+
+## 1. Introdução
+
+O objetivo deste projeto é auxiliar no gerenciamento de uma clínica de pilates, automatizando processos que anteriormente eram realizados manualmente, como cadastro de usuários, autenticação e gerenciamento das informações do sistema.
+
+O sistema foi desenvolvido utilizando uma arquitetura cliente-servidor, separando a aplicação em front-end, back-end e banco de dados.
+
+---
+
+# 2. Tecnologias Utilizadas
+
+## Front-end
+
+* React
+* Vite
+* HTML, CSS e JavaScript
+
+## Back-end
+
+* Java
+* Spring Boot
+* Maven
+
+## Banco de Dados
+
+* MySQL
+
+## Persistência
+
+* Spring Data JPA
+* Hibernate
+
+## Documentação da API
+
+* Swagger OpenAPI
+
+## Infraestrutura
+
+* Docker
+
+---
+
+# 3. Arquitetura do Sistema
+
+O sistema foi dividido em camadas para facilitar a manutenção e organização do código.
+
+### Front-end
+
+Responsável pela interface gráfica apresentada ao usuário.
+
+Funções:
+
+* Tela de Login
+* Tela de Cadastro
+* Interação do usuário com o sistema
+
+### Back-end
+
+Responsável pelas regras de negócio e processamento das requisições.
+
+Funções:
+
+* Autenticação de usuários
+* Cadastro de usuários
+* Validação das informações
+* Comunicação com o banco de dados
+
+### Banco de Dados
+
+Responsável pelo armazenamento persistente das informações do sistema.
+
+---
+
+# 4. Estrutura do Back-end
+
+## Controller
+
+Recebe as requisições vindas do front-end.
+
+Exemplos:
+
+* Login
+* Cadastro
+* Atualização de dados
+* Exclusão de usuários
+
+## Service
+
+Contém as regras de negócio da aplicação.
+
+Exemplos:
+
+* Verificação de login
+* Validação de senha
+* Cadastro de novos usuários
+
+## Repository
+
+Camada responsável pelo acesso ao banco de dados utilizando JPA.
+
+## Entity (Model)
+
+Representa as tabelas existentes no banco de dados.
+
+Exemplo:
+
+Classe Usuario → Tabela usuarios
+
+---
+
+# 5. Banco de Dados
+
+Foi utilizado o MySQL executando em um container Docker.
+
+Vantagens:
+
+* Isolamento da aplicação
+* Facilidade de implantação
+* Padronização do ambiente
+* Portabilidade
+
+Comando utilizado para verificar o container:
+
+```bash
+docker ps
+```
+
+---
+
+# 6. Swagger
+
+O Swagger foi utilizado para documentar e testar todos os endpoints da API.
+
+Exemplos de funcionalidades testadas:
+
+* Cadastro de usuários
+* Login
+* Atualização de usuários
+* Exclusão de usuários
+
+URL:
+
+```text
+http://localhost:8080/swagger-ui/index.html
+```
+
+---
+
+# 7. Testes Automatizados
+
+Foram implementados testes automatizados utilizando JUnit.
+
+Os testes garantem o correto funcionamento das principais funcionalidades do sistema.
+
+Testes implementados:
+
+* Cadastro de usuário
+* Login com sucesso
+* Login com senha inválida
+* Atualização de usuário
+* Exclusão de usuário
+
+Benefícios:
+
+* Maior confiabilidade
+* Redução de erros
+* Facilidade na manutenção
+
+---
+
+# 8. Fluxo do Sistema
+
+1. O usuário interage com o front-end.
+2. O front-end envia uma requisição para a API.
+3. O Controller recebe a requisição.
+4. O Service executa as regras de negócio.
+5. O Repository acessa o banco de dados.
+6. O banco retorna a resposta.
+7. A resposta é enviada novamente ao front-end.
+
+---
+
+# 9. Conclusão
+
+O sistema desenvolvido permitiu aplicar conceitos importantes de desenvolvimento web, arquitetura em camadas, persistência de dados, documentação de APIs, conteinerização com Docker e testes automatizados.
+
+Além disso, o projeto proporcionou uma solução prática para auxiliar a gestão de uma clínica de pilates.

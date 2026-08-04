@@ -15,12 +15,15 @@ function NotFoundComponent() {
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
         <h1 className="text-7xl font-bold text-foreground">404</h1>
+
         <h2 className="mt-4 text-xl font-semibold text-foreground">
           Página não encontrada
         </h2>
+
         <p className="mt-2 text-sm text-muted-foreground">
           A página que você está procurando não existe ou foi movida.
         </p>
+
         <div className="mt-6">
           <Link
             to="/"
@@ -34,8 +37,15 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({
+  error,
+  reset,
+}: {
+  error: Error;
+  reset: () => void;
+}) {
   console.error(error);
+
   const router = useRouter();
 
   return (
@@ -44,11 +54,14 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
         <h1 className="text-xl font-semibold tracking-tight text-foreground">
           Esta página não carregou
         </h1>
+
         <p className="mt-2 text-sm text-muted-foreground">
           Algo deu errado. Tente atualizar a página ou voltar para o início.
         </p>
+
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
+            type="button"
             onClick={() => {
               router.invalidate();
               reset();
@@ -57,6 +70,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
           >
             Tentar novamente
           </button>
+
           <a
             href="/"
             className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
@@ -69,50 +83,95 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient;
+}>()({
   head: () => ({
     meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Studio Pilates — Autoatendimento" },
+      {
+        charSet: "utf-8",
+      },
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
+      },
+      {
+        title: "Studio Pilates — Autoatendimento",
+      },
       {
         name: "description",
-        content: "Agende e gerencie suas aulas de Pilates de forma rápida e prática.",
+        content:
+          "Agende e gerencie suas aulas de Pilates de forma rápida e prática.",
       },
-      { name: "author", content: "Studio Pilates" },
-      { property: "og:title", content: "Studio Pilates — Autoatendimento" },
+      {
+        name: "author",
+        content: "Studio Pilates",
+      },
+      {
+        property: "og:title",
+        content: "Studio Pilates — Autoatendimento",
+      },
       {
         property: "og:description",
-        content: "Agende e gerencie suas aulas de Pilates de forma rápida e prática.",
+        content:
+          "Agende e gerencie suas aulas de Pilates de forma rápida e prática.",
       },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@StudioPilates" },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        name: "twitter:card",
+        content: "summary",
+      },
+      {
+        name: "twitter:site",
+        content: "@StudioPilates",
+      },
     ],
+
     links: [
       {
         rel: "stylesheet",
         href: appCss,
       },
-      {
-        rel: "icon",
-        type: "image/svg+xml",
-        href: "/favicon.svg?v=10",
-      },
     ],
   }),
+
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
   errorComponent: ErrorComponent,
 });
 
-function RootShell({ children }: { children: React.ReactNode }) {
+function RootShell({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="pt-BR">
       <head>
         <HeadContent />
+
+        <link
+          rel="icon"
+          type="image/png"
+          href="/logo.png?v=100"
+        />
+
+        <link
+          rel="shortcut icon"
+          type="image/png"
+          href="/logo.png?v=100"
+        />
+
+        <link
+          rel="apple-touch-icon"
+          href="/logo.png?v=100"
+        />
       </head>
+
       <body>
         {children}
         <Scripts />
