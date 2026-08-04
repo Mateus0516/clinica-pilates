@@ -293,6 +293,6 @@ BUILD SUCCESS
 
 # 👨‍💻 Desenvolvido por
 
-Mateus Rodrigues
+Mateus Cavalcante Rodrigues
 
 Projeto — Sistema de Gestão para Clínica de Pilates.
