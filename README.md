@@ -1,4 +1,4 @@
-# 🧘 Clínica Pilates — Sistema de Gestão e Autoatendimento
+# 🧘 Timely — Sistema de Gestão e Autoatendimento
 
 Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de um Studio de Pilates.
 
