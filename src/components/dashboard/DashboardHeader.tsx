@@ -1,33 +1,37 @@
-import { Bell, Coins, LogOut } from "lucide-react";
+import { Bell, Coins } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import type { Student } from "@/lib/clinic-store";
 
 type DashboardHeaderProps = {
   student: Student;
-  onLogout: () => void;
 };
 
 export function DashboardHeader({
   student,
-  onLogout,
 }: DashboardHeaderProps) {
+  const firstName =
+    student.name?.trim().split(" ")[0] || "Aluno";
+
+  const initial =
+    firstName.charAt(0).toUpperCase();
+
   return (
     <header className="mb-8 flex flex-wrap items-center justify-between gap-6">
       <div className="flex items-center gap-4">
         <img
           src="/logo.png"
-          alt="Logo do Studio Pilates"
+          alt="Logo do Timely"
           className="h-16 w-16 shrink-0 object-contain"
         />
 
         <div>
           <p className="text-sm font-semibold text-primary">
-            Studio Pilates
+            Timely - Autoatendimento
           </p>
 
           <h1 className="mt-1 text-2xl font-bold md:text-3xl">
-            Olá, {student.name}!
+            Olá, {firstName}!
           </h1>
 
           <p className="mt-1 text-sm text-muted-foreground">
@@ -64,10 +68,14 @@ export function DashboardHeader({
           </span>
         </div>
 
-        <Button variant="outline" size="sm" onClick={onLogout}>
-          <LogOut className="mr-2 h-4 w-4" />
-          Sair
-        </Button>
+        <button
+          type="button"
+          className="flex h-10 w-10 items-center justify-center rounded-full border border-border bg-primary text-sm font-bold text-primary-foreground shadow-sm transition hover:scale-105"
+          aria-label={`Perfil de ${firstName}`}
+          title={firstName}
+        >
+          {initial}
+        </button>
       </div>
     </header>
   );

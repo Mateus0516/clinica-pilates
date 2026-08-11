@@ -96,7 +96,7 @@ export const Route = createRootRouteWithContext<{
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Studio Pilates — Autoatendimento",
+        title: "Timely — Autoatendimento",
       },
       {
         name: "description",
@@ -105,11 +105,11 @@ export const Route = createRootRouteWithContext<{
       },
       {
         name: "author",
-        content: "Studio Pilates",
+        content: "Timely",
       },
       {
         property: "og:title",
-        content: "Studio Pilates — Autoatendimento",
+        content: "Timely — Autoatendimento",
       },
       {
         property: "og:description",
@@ -126,7 +126,7 @@ export const Route = createRootRouteWithContext<{
       },
       {
         name: "twitter:site",
-        content: "@StudioPilates",
+        content: "@Timely",
       },
     ],
 

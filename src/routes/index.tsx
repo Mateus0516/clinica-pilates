@@ -18,10 +18,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
+
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { SummaryCards } from "@/components/dashboard/SummaryCards";
 import { UpcomingBookings } from "@/components/dashboard/UpcomingBookings";
 import { WeeklySchedule } from "@/components/dashboard/WeeklySchedule";
+import { Sidebar } from "@/components/layout/Sidebar";
 
 import { toast, Toaster } from "sonner";
 
@@ -141,7 +143,7 @@ function Login({ onLogin }: { onLogin: (student: Student) => void }) {
             <CalendarDays className="w-7 h-7 text-primary" />
           </div>
 
-          <h1 className="text-2xl font-bold">Studio Pilates</h1>
+          <h1 className="text-2xl font-bold">Timely</h1>
 
           <p className="text-sm text-muted-foreground">
             Autoatendimento do aluno
@@ -243,6 +245,7 @@ function Dashboard({
   onUpdate: (student: Student) => void;
 }) {
   const [weekOffset, setWeekOffset] = useState(0);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>(getBookings());
 
   const week = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
@@ -390,44 +393,111 @@ function Dashboard({
     refresh();
   };
 
+  const handleNavigation = (
+    section:
+      | "inicio"
+      | "agenda"
+      | "aulas"
+      | "historico"
+      | "perfil"
+      | "notificacoes",
+  ) => {
+    if (section === "inicio") {
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+      return;
+    }
+
+    if (section === "agenda") {
+      document
+        .getElementById("agenda")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      return;
+    }
+
+    if (section === "aulas") {
+      document
+        .getElementById("minhas-aulas")
+        ?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      return;
+    }
+
+    if (section === "historico") {
+      toast.info("A seção Histórico será implementada em breve.");
+      return;
+    }
+
+    if (section === "perfil") {
+      toast.info("A seção Perfil será implementada em breve.");
+      return;
+    }
+
+    toast.info("A seção Notificações será implementada em breve.");
+  };
+
   return (
-    <main className="max-w-7xl mx-auto p-4 md:p-8">
-      <DashboardHeader
-        student={student}
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
+        collapsed={sidebarCollapsed}
+        onToggle={() =>
+          setSidebarCollapsed((current) => !current)
+        }
         onLogout={onLogout}
+        onNavigate={handleNavigation}
       />
 
-      <SummaryCards
-        student={student}
-        nextBooking={nextBooking}
-        classesThisMonth={classesThisMonth}
-        monthlyGoal={monthlyGoal}
-        goalProgress={goalProgress}
-      />
+      <main className="min-w-0 flex-1 p-4 md:p-8">
+        <div className="mx-auto max-w-7xl">
+          <section id="inicio" className="scroll-mt-4">
+            <DashboardHeader student={student} />
 
-      <UpcomingBookings
-        bookings={orderedMyBookings}
-        onCancel={cancel}
-      />
+            <SummaryCards
+              student={student}
+              nextBooking={nextBooking}
+              classesThisMonth={classesThisMonth}
+              monthlyGoal={monthlyGoal}
+              goalProgress={goalProgress}
+            />
+          </section>
 
-      <WeeklySchedule
-        student={student}
-        week={week}
-        bookings={bookings}
-        onPreviousWeek={() =>
-          setWeekOffset((currentOffset) => currentOffset - 1)
-        }
-        onNextWeek={() =>
-          setWeekOffset((currentOffset) => currentOffset + 1)
-        }
-        onBook={book}
-        onCancel={cancel}
-      />
+          <section id="minhas-aulas" className="scroll-mt-4">
+            <UpcomingBookings
+              bookings={orderedMyBookings}
+              onCancel={cancel}
+            />
+          </section>
 
-      <p className="text-xs text-muted-foreground text-center mt-6">
-        Máximo de 3 alunos por turma · Desmarcar com 6 horas ou mais
-        devolve o crédito · Limite de 1 aula por dia
-      </p>
-    </main>
+          <section id="agenda" className="scroll-mt-4">
+            <WeeklySchedule
+            student={student}
+            week={week}
+            bookings={bookings}
+            onPreviousWeek={() =>
+              setWeekOffset((currentOffset) => currentOffset - 1)
+            }
+            onNextWeek={() =>
+              setWeekOffset((currentOffset) => currentOffset + 1)
+            }
+              onGoToToday={() => setWeekOffset(0)}
+              onBook={book}
+              onCancel={cancel}
+            />
+          </section>
+
+          <p className="mt-6 text-center text-xs text-muted-foreground">
+            Máximo de 3 alunos por turma · Desmarcar com 6 horas ou mais
+            devolve o crédito · Limite de 1 aula por dia
+          </p>
+        </div>
+      </main>
+    </div>
   );
 }

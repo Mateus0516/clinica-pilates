@@ -1,6 +1,6 @@
 # 🧘 Clínica Pilates — Sistema de Gestão e Autoatendimento
 
-Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de um Studio de Pilates.
+Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de um Sistema de Gestão e Autoatendimento.
 
 O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de Engenharia de Software, Arquitetura em Camadas, APIs REST, Banco de Dados, Docker e Documentação de Software.
 
