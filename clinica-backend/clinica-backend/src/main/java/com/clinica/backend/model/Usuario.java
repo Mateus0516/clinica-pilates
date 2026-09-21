@@ -2,6 +2,8 @@ package com.clinica.backend.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "usuarios")
 public class Usuario {
@@ -18,7 +20,11 @@ public class Usuario {
     @Column(nullable = false)
     private String senhaHash;
 
-    private String perfil = "ALUNO";
+    private String telefone;
+
+    private LocalDate dataNascimento;
+
+    private String perfil = "PACIENTE";
 
     public Long getId() {
         return id;
@@ -46,6 +52,22 @@ public class Usuario {
 
     public void setSenhaHash(String senhaHash) {
         this.senhaHash = senhaHash;
+    }
+
+    public String getTelefone() {
+        return telefone;
+    }
+
+    public void setTelefone(String telefone) {
+        this.telefone = telefone;
+    }
+
+    public LocalDate getDataNascimento() {
+        return dataNascimento;
+    }
+
+    public void setDataNascimento(LocalDate dataNascimento) {
+        this.dataNascimento = dataNascimento;
     }
 
     public String getPerfil() {

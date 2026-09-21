@@ -1,7 +1,16 @@
-import { BarChart3, Clock3, Coins, Flame } from "lucide-react";
+import {
+  BarChart3,
+  CalendarCheck2,
+  Clock3,
+  Flame,
+} from "lucide-react";
 
 import { Card } from "@/components/ui/card";
-import type { Booking, Student } from "@/lib/clinic-store";
+
+import type {
+  Booking,
+  Student,
+} from "@/lib/clinic-store";
 
 type SummaryCardsProps = {
   student: Student;
@@ -20,28 +29,30 @@ export function SummaryCards({
 }: SummaryCardsProps) {
   return (
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      {/* SESSÕES DISPONÍVEIS */}
       <Card className="p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">
-              Créditos disponíveis
+              Sessões disponíveis
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {student.credits}
+              {student.sessionsRemaining}
             </p>
           </div>
 
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
-            <Coins className="h-5 w-5 text-primary" />
+            <CalendarCheck2 className="h-5 w-5 text-primary" />
           </div>
         </div>
 
         <p className="mt-5 text-xs text-muted-foreground">
-          Cada agendamento utiliza 1 crédito.
+          Cada agendamento utiliza 1 sessão do seu pacote.
         </p>
       </Card>
 
+      {/* PRÓXIMA AULA */}
       <Card className="p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -54,24 +65,32 @@ export function SummaryCards({
                 <p className="mt-2 text-lg font-bold capitalize">
                   {new Date(
                     `${nextBooking.date}T00:00:00`,
-                  ).toLocaleDateString("pt-BR", {
-                    weekday: "long",
-                  })}
+                  ).toLocaleDateString(
+                    "pt-BR",
+                    {
+                      weekday: "long",
+                    },
+                  )}
                 </p>
 
                 <p className="text-sm text-muted-foreground">
                   {new Date(
                     `${nextBooking.date}T00:00:00`,
-                  ).toLocaleDateString("pt-BR", {
-                    day: "2-digit",
-                    month: "short",
-                  })}
+                  ).toLocaleDateString(
+                    "pt-BR",
+                    {
+                      day: "2-digit",
+                      month: "short",
+                    },
+                  )}
+
                   {" • "}
+
                   {nextBooking.time}
                 </p>
 
                 <span className="mt-3 inline-flex rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                  {nextBooking.instructor}
+                  Prof. {nextBooking.instructor}
                 </span>
               </>
             ) : (
@@ -87,6 +106,7 @@ export function SummaryCards({
         </div>
       </Card>
 
+      {/* AULAS ESTE MÊS */}
       <Card className="p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -106,19 +126,27 @@ export function SummaryCards({
 
         <div className="mt-5">
           <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-            <span>Meta: {monthlyGoal} aulas</span>
-            <span>{goalProgress}%</span>
+            <span>
+              Meta: {monthlyGoal} aulas
+            </span>
+
+            <span>
+              {goalProgress}%
+            </span>
           </div>
 
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all duration-300"
-              style={{ width: `${goalProgress}%` }}
+              style={{
+                width: `${goalProgress}%`,
+              }}
             />
           </div>
         </div>
       </Card>
 
+      {/* SEQUÊNCIA */}
       <Card className="p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>

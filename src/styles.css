@@ -1,4 +1,4 @@
-@import "tailwindcss" source(none);
+@import "tailwindcss";
 @source "../src";
 @import "tw-animate-css";
 
@@ -61,7 +61,7 @@
   --muted: #EAF5FA;
   --muted-foreground: #5A7382;
 
-  /* Botão de créditos */
+  /* Destaques */
   --accent: #A7DDF0;
   --accent-foreground: #173645;
 
@@ -81,7 +81,10 @@
 }
 
 @layer base {
-  * { border-color: var(--color-border); }
+  * {
+    border-color: var(--color-border);
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);

@@ -1,503 +1,461 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import {
+  createFileRoute,
+  useNavigate,
+} from "@tanstack/react-router";
 
 import {
-  Booking,
-  MAX_PER_SLOT,
-  Student,
-  getBookings,
-  getSession,
-  getWeekDates,
-  saveBookings,
-  setSession,
-  updateStudent,
-} from "@/lib/clinic-store";
+  ArrowRight,
+  BarChart3,
+  Building2,
+  CheckCircle2,
+  Clock3,
+  Headphones,
+  Heart,
+  LockKeyhole,
+  MonitorSmartphone,
+  ShieldCheck,
+  UserRound,
+  UsersRound,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 
-
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { SummaryCards } from "@/components/dashboard/SummaryCards";
-import { UpcomingBookings } from "@/components/dashboard/UpcomingBookings";
-import { WeeklySchedule } from "@/components/dashboard/WeeklySchedule";
-import { Sidebar } from "@/components/layout/Sidebar";
-
-import { toast, Toaster } from "sonner";
-
-import { CalendarDays } from "lucide-react";
-
 export const Route = createFileRoute("/")({
-  component: Index,
+  component: HomePage,
 });
 
+function HomePage() {
+  const navigate = useNavigate();
 
-function Index() {
-  const [student, setStudent] = useState<Student | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    setStudent(getSession());
-    setReady(true);
-  }, []);
-
-  if (!ready) return null;
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Toaster richColors position="top-center" />
-
-      {student ? (
-        <Dashboard
-          student={student}
-          onLogout={() => {
-            setSession(null);
-            setStudent(null);
-          }}
-          onUpdate={setStudent}
-        />
-      ) : (
-        <Login onLogin={setStudent} />
-      )}
-    </div>
-  );
-}
-
-function Login({ onLogin }: { onLogin: (student: Student) => void }) {
-  const [mode, setMode] = useState<"login" | "signup">("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const submit = async (event: React.FormEvent) => {
-    event.preventDefault();
-
-    try {
-      const response = await fetch(
-        mode === "signup"
-          ? "http://localhost:8080/auth/register"
-          : "http://localhost:8080/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(
-            mode === "signup"
-              ? {
-                  nome: name,
-                  email,
-                  senha: password,
-                }
-              : {
-                  email,
-                  senha: password,
-                },
-          ),
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        throw new Error(
-          errorData.erro ||
-            (mode === "signup"
-              ? "Não foi possível criar a conta."
-              : "Email ou senha inválidos."),
-        );
-      }
-
-      const data = await response.json();
-
-      const studentData: Student = {
-        id: String(data.id),
-        name: data.nome || name,
-        email: data.email || email,
-        credits: 8,
-        password: "",
-      };
-
-      setSession(studentData);
-      onLogin(studentData);
-
-      toast.success(
-        mode === "signup"
-          ? "Conta criada com sucesso!"
-          : "Login realizado com sucesso!",
-      );
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Erro ao conectar.",
-      );
-    }
+  const goToAccess = () => {
+    navigate({
+      to: "/acesso",
+    });
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-accent/40 via-background to-secondary">
-      <Card className="w-full max-w-md p-8 shadow-xl">
-        <div className="flex flex-col items-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-primary/15 flex items-center justify-center mb-3">
-            <CalendarDays className="w-7 h-7 text-primary" />
+    <div className="min-h-screen bg-white text-slate-950">
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Logo Timely"
+              className="h-14 w-14 object-contain"
+            />
+
+            <div>
+              <p className="text-2xl font-bold leading-none text-slate-900">
+                TIMELY
+              </p>
+
+              <p className="mt-1 text-xs font-medium text-slate-500">
+                Gestão e Autoatendimento
+              </p>
+            </div>
           </div>
 
-          <h1 className="text-2xl font-bold">Timely</h1>
+          {/* Navegação */}
+          <nav className="hidden items-center gap-9 text-sm font-medium text-slate-700 lg:flex">
+            <a
+              href="#inicio"
+              className="border-b-2 border-primary pb-5 pt-5 text-primary transition"
+            >
+              Início
+            </a>
 
-          <p className="text-sm text-muted-foreground">
-            Autoatendimento do aluno
-          </p>
-        </div>
+            <a
+              href="#funcionalidades"
+              className="transition hover:text-primary"
+            >
+              Funcionalidades
+            </a>
 
-        <div className="grid grid-cols-2 gap-1 p-1 bg-muted rounded-lg mb-6">
-          <button
+            <a
+              href="#perfis"
+              className="transition hover:text-primary"
+            >
+              Para clínicas
+            </a>
+
+            <a
+              href="#contato"
+              className="transition hover:text-primary"
+            >
+              Contato
+            </a>
+
+            <a
+              href="#sobre"
+              className="transition hover:text-primary"
+            >
+              Sobre nós
+            </a>
+          </nav>
+
+          <Button
             type="button"
-            onClick={() => setMode("login")}
-            className={`py-2 text-sm font-medium rounded-md transition ${
-              mode === "login"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground"
-            }`}
+            onClick={goToAccess}
+            className="rounded-xl px-5 shadow-sm"
           >
-            Entrar
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setMode("signup")}
-            className={`py-2 text-sm font-medium rounded-md transition ${
-              mode === "signup"
-                ? "bg-background shadow-sm"
-                : "text-muted-foreground"
-            }`}
-          >
-            Cadastrar
-          </button>
+            <UserRound className="mr-2 h-4 w-4" />
+            Acessar o sistema
+          </Button>
         </div>
+      </header>
 
-        <form className="space-y-4" onSubmit={submit}>
-          {mode === "signup" && (
-            <div className="space-y-2">
-              <Label htmlFor="name">Nome</Label>
+      {/* HERO */}
+      <section
+        id="inicio"
+        className="overflow-hidden bg-gradient-to-br from-white via-sky-50/70 to-blue-50"
+      >
+        <div className="mx-auto grid min-h-[700px] max-w-7xl items-center gap-12 px-6 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:py-20">
+          {/* Texto */}
+          <div className="flex flex-col justify-center">
+            <div className="mb-7 inline-flex w-fit items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
+              <Heart className="h-4 w-4" />
+              Tecnologia que conecta cuidado e gestão
+            </div>
 
-              <Input
-                id="name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                placeholder="Seu nome"
-                maxLength={80}
-                required
+            <h1 className="max-w-[620px] text-5xl font-bold leading-[1.08] tracking-tight text-slate-950 lg:text-6xl">
+              Cuidado e gestão
+              <br />
+              <span className="text-primary">
+                em um só lugar.
+              </span>
+            </h1>
+
+            <div className="mt-8 max-w-[590px] space-y-4 text-lg leading-8 text-slate-600">
+              <p>
+                Uma experiência simples para pacientes,
+                profissionais e clínicas organizarem
+                atendimentos, agendas e rotinas.
+              </p>
+
+              <p>
+                Mais tempo, organização e qualidade no que
+                realmente importa:{" "}
+                <span className="font-semibold text-primary">
+                  as pessoas.
+                </span>
+              </p>
+            </div>
+
+            {/* Botões */}
+            <div className="mt-8 flex flex-wrap gap-4">
+              <Button
+                type="button"
+                size="lg"
+                className="h-14 rounded-xl px-7 text-base"
+                onClick={goToAccess}
+              >
+                Acessar o sistema
+                <ArrowRight className="ml-3 h-5 w-5" />
+              </Button>
+
+              <Button
+                type="button"
+                size="lg"
+                variant="outline"
+                className="h-14 rounded-xl border-primary px-7 text-base text-primary hover:bg-primary/5 hover:text-primary"
+                onClick={() => {
+                  document
+                    .getElementById("contato")
+                    ?.scrollIntoView({
+                      behavior: "smooth",
+                    });
+                }}
+              >
+                Falar com a equipe
+              </Button>
+            </div>
+
+            {/* Benefícios */}
+            <div className="mt-14 grid grid-cols-2 gap-x-6 gap-y-6 sm:grid-cols-4">
+              <MiniBenefit
+                icon={ShieldCheck}
+                title="Dados seguros"
+                text="Proteção e privacidade"
+              />
+
+              <MiniBenefit
+                icon={Clock3}
+                title="Mais tempo"
+                text="Gestão inteligente"
+              />
+
+              <MiniBenefit
+                icon={UsersRound}
+                title="Atendimento completo"
+                text="Para você e sua clínica"
+              />
+
+              <MiniBenefit
+                icon={MonitorSmartphone}
+                title="100% online"
+                text="Acesse de onde estiver"
               />
             </div>
-          )}
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              placeholder="voce@email.com"
-              maxLength={120}
-              required
-            />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
+          {/* Imagem */}
+          <div className="relative flex items-center justify-center">
+            <div className="absolute -left-16 top-10 h-48 w-48 rounded-full bg-primary/10 blur-3xl" />
 
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-              maxLength={64}
-              required
+            <div className="absolute -bottom-16 right-0 h-56 w-56 rounded-full bg-sky-300/20 blur-3xl" />
+
+            <img
+              src="/landing-clinic.jpg"
+              alt="Recepção de clínica"
+              className="relative z-10 h-[560px] w-full rounded-[2rem] object-cover shadow-2xl"
             />
           </div>
+        </div>
+      </section>
 
-          <Button type="submit" className="w-full">
-            {mode === "signup" ? "Criar conta" : "Entrar"}
-          </Button>
+      {/* PARA QUEM É */}
+      <section
+        id="perfis"
+        className="bg-white py-20"
+      >
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold text-slate-950">
+              Para quem é o Timely?
+            </h2>
 
-          {mode === "signup" && (
-            <p className="text-xs text-muted-foreground text-center">
-              Novos alunos ganham 8 créditos de boas-vindas.
+            <p className="mt-3 text-slate-600">
+              Soluções para cada perfil, integradas em uma
+              única plataforma.
             </p>
-          )}
-        </form>
-      </Card>
+          </div>
+
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            <ProfileCard
+              icon={UserRound}
+              title="Paciente"
+              description="Agende atendimentos, acompanhe sua agenda, histórico e receba avisos importantes."
+            />
+
+            <ProfileCard
+              icon={UsersRound}
+              title="Profissional"
+              description="Gerencie sua agenda, pacientes, atendimentos e evoluções com praticidade e segurança."
+            />
+
+            <ProfileCard
+              icon={Building2}
+              title="Administração"
+              description="Tenha controle da clínica, equipe, serviços, finanças e relatórios em um único lugar."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* FUNCIONALIDADES */}
+      <section
+        id="funcionalidades"
+        className="bg-slate-50 py-20"
+      >
+        <div className="mx-auto max-w-7xl px-6">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-3xl font-bold text-slate-950">
+              Uma plataforma completa
+            </h2>
+
+            <p className="mt-3 text-slate-600">
+              Recursos pensados para simplificar a rotina de
+              clínicas, profissionais e pacientes.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-5">
+            <FeatureCard
+              icon={MonitorSmartphone}
+              title="Acesso de onde estiver"
+              text="Sistema online disponível em diferentes dispositivos."
+            />
+
+            <FeatureCard
+              icon={Headphones}
+              title="Suporte dedicado"
+              text="Uma experiência pensada para facilitar sua operação."
+            />
+
+            <FeatureCard
+              icon={BarChart3}
+              title="Relatórios"
+              text="Informações importantes para acompanhar sua clínica."
+            />
+
+            <FeatureCard
+              icon={LockKeyhole}
+              title="Segurança"
+              text="Controle de acesso e proteção das informações."
+            />
+
+            <FeatureCard
+              icon={CheckCircle2}
+              title="Gestão integrada"
+              text="Agenda, pacientes e profissionais em um só lugar."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* SOBRE */}
+      <section
+        id="sobre"
+        className="bg-white py-20"
+      >
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+              Sobre o Timely
+            </p>
+
+            <h2 className="mt-3 text-3xl font-bold text-slate-950">
+              Tecnologia para simplificar o cuidado.
+            </h2>
+          </div>
+
+          <div className="space-y-4 leading-7 text-slate-600">
+            <p>
+              O Timely foi pensado para conectar pacientes,
+              profissionais e administração em uma experiência
+              simples e organizada.
+            </p>
+
+            <p>
+              A proposta é reduzir tarefas repetitivas,
+              centralizar informações e tornar a rotina da
+              clínica mais eficiente.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* RODAPÉ */}
+      <footer
+        id="contato"
+        className="border-t border-slate-200 bg-white"
+      >
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-5 px-6 py-10 md:flex-row md:items-center">
+          <div className="flex items-center gap-3">
+            <img
+              src="/logo.png"
+              alt="Logo Timely"
+              className="h-10 w-10 object-contain"
+            />
+
+            <div>
+              <p className="font-bold text-slate-900">
+                TIMELY
+              </p>
+
+              <p className="text-xs text-slate-500">
+                Gestão e Autoatendimento
+              </p>
+            </div>
+          </div>
+
+          <div className="text-sm text-slate-500">
+            © 2026 Timely. Todos os direitos reservados.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
 
-function Dashboard({
-  student,
-  onLogout,
-  onUpdate,
+function MiniBenefit({
+  icon: Icon,
+  title,
+  text,
 }: {
-  student: Student;
-  onLogout: () => void;
-  onUpdate: (student: Student) => void;
+  icon: typeof ShieldCheck;
+  title: string;
+  text: string;
 }) {
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [bookings, setBookings] = useState<Booking[]>(getBookings());
-
-  const week = useMemo(() => getWeekDates(weekOffset), [weekOffset]);
-
-  const refresh = () => {
-    setBookings(getBookings());
-  };
-
-  const myBookings = bookings.filter(
-    (booking) => booking.studentId === student.id,
-  );
-
-  const orderedMyBookings = [...myBookings].sort((bookingA, bookingB) =>
-    `${bookingA.date}T${bookingA.time}`.localeCompare(
-      `${bookingB.date}T${bookingB.time}`,
-    ),
-  );
-
-  const nextBooking = orderedMyBookings.find((booking) => {
-    const bookingDate = new Date(
-      `${booking.date}T${booking.time}:00`,
-    ).getTime();
-
-    return bookingDate >= Date.now();
-  });
-
-  const currentDate = new Date();
-  const currentMonth = currentDate.getMonth();
-  const currentYear = currentDate.getFullYear();
-
-  const classesThisMonth = myBookings.filter((booking) => {
-    const bookingDate = new Date(`${booking.date}T00:00:00`);
-
-    return (
-      bookingDate.getMonth() === currentMonth &&
-      bookingDate.getFullYear() === currentYear
-    );
-  }).length;
-
-  const monthlyGoal = 16;
-
-  const goalProgress = Math.min(
-    Math.round((classesThisMonth / monthlyGoal) * 100),
-    100,
-  );
-
-  const book = (date: string, time: string, instructor: string) => {
-    if (student.credits <= 0) {
-      toast.error("Você não tem créditos suficientes.");
-      return;
-    }
-
-    const allBookings = getBookings();
-
-    const alreadyBookedInClass = allBookings.some(
-      (booking) =>
-        booking.date === date &&
-        booking.time === time &&
-        booking.instructor === instructor &&
-        booking.studentId === student.id,
-    );
-
-    if (alreadyBookedInClass) {
-      toast.error("Você já está agendado nesta aula.");
-      return;
-    }
-
-    const classBookings = allBookings.filter(
-      (booking) =>
-        booking.date === date &&
-        booking.time === time &&
-        booking.instructor === instructor,
-    );
-
-    if (classBookings.length >= MAX_PER_SLOT) {
-      toast.error("Turma cheia (3 alunos).");
-      return;
-    }
-
-    const alreadyBookedOnDay = allBookings.some(
-      (booking) =>
-        booking.date === date && booking.studentId === student.id,
-    );
-
-    if (alreadyBookedOnDay) {
-      toast.error("Você já tem um agendamento neste dia.");
-      return;
-    }
-
-    const newBooking: Booking = {
-      id: crypto.randomUUID(),
-      studentId: student.id,
-      studentName: student.name,
-      date,
-      time,
-      instructor,
-    };
-
-    saveBookings([...allBookings, newBooking]);
-
-    const updatedStudent = {
-      ...student,
-      credits: student.credits - 1,
-    };
-
-    updateStudent(updatedStudent);
-    onUpdate(updatedStudent);
-    refresh();
-
-    toast.success("Aula agendada!");
-  };
-
-  const cancel = (booking: Booking) => {
-    const updatedBookings = getBookings().filter(
-      (currentBooking) => currentBooking.id !== booking.id,
-    );
-
-    saveBookings(updatedBookings);
-
-    const classDate = new Date(
-      `${booking.date}T${booking.time}:00`,
-    );
-
-    const differenceInHours =
-      (classDate.getTime() - Date.now()) / 36e5;
-
-    if (differenceInHours >= 6) {
-      const updatedStudent = {
-        ...student,
-        credits: student.credits + 1,
-      };
-
-      updateStudent(updatedStudent);
-      onUpdate(updatedStudent);
-
-      toast.success(
-        "Aula desmarcada. Crédito de reposição liberado.",
-      );
-    } else {
-      toast.warning(
-        "Aula desmarcada. Sem reposição porque faltam menos de 6 horas.",
-      );
-    }
-
-    refresh();
-  };
-
-  const handleNavigation = (
-    section:
-      | "inicio"
-      | "agenda"
-      | "aulas"
-      | "historico"
-      | "perfil"
-      | "notificacoes",
-  ) => {
-    if (section === "inicio") {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-      return;
-    }
-
-    if (section === "agenda") {
-      document
-        .getElementById("agenda")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      return;
-    }
-
-    if (section === "aulas") {
-      document
-        .getElementById("minhas-aulas")
-        ?.scrollIntoView({
-          behavior: "smooth",
-          block: "start",
-        });
-      return;
-    }
-
-    if (section === "historico") {
-      toast.info("A seção Histórico será implementada em breve.");
-      return;
-    }
-
-    if (section === "perfil") {
-      toast.info("A seção Perfil será implementada em breve.");
-      return;
-    }
-
-    toast.info("A seção Notificações será implementada em breve.");
-  };
-
   return (
-    <div className="flex min-h-screen bg-background">
-      <Sidebar
-        collapsed={sidebarCollapsed}
-        onToggle={() =>
-          setSidebarCollapsed((current) => !current)
-        }
-        onLogout={onLogout}
-        onNavigate={handleNavigation}
-      />
+    <div className="flex items-start gap-3">
+      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
 
-      <main className="min-w-0 flex-1 p-4 md:p-8">
-        <div className="mx-auto max-w-7xl">
-          <section id="inicio" className="scroll-mt-4">
-            <DashboardHeader student={student} />
+      <div>
+        <p className="text-sm font-semibold leading-5 text-slate-900">
+          {title}
+        </p>
 
-            <SummaryCards
-              student={student}
-              nextBooking={nextBooking}
-              classesThisMonth={classesThisMonth}
-              monthlyGoal={monthlyGoal}
-              goalProgress={goalProgress}
-            />
-          </section>
-
-          <section id="minhas-aulas" className="scroll-mt-4">
-            <UpcomingBookings
-              bookings={orderedMyBookings}
-              onCancel={cancel}
-            />
-          </section>
-
-          <section id="agenda" className="scroll-mt-4">
-            <WeeklySchedule
-            student={student}
-            week={week}
-            bookings={bookings}
-            onPreviousWeek={() =>
-              setWeekOffset((currentOffset) => currentOffset - 1)
-            }
-            onNextWeek={() =>
-              setWeekOffset((currentOffset) => currentOffset + 1)
-            }
-              onGoToToday={() => setWeekOffset(0)}
-              onBook={book}
-              onCancel={cancel}
-            />
-          </section>
-
-          <p className="mt-6 text-center text-xs text-muted-foreground">
-            Máximo de 3 alunos por turma · Desmarcar com 6 horas ou mais
-            devolve o crédito · Limite de 1 aula por dia
-          </p>
-        </div>
-      </main>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          {text}
+        </p>
+      </div>
     </div>
+  );
+}
+
+function ProfileCard({
+  icon: Icon,
+  title,
+  description,
+}: {
+  icon: typeof UserRound;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Card className="group p-7 transition-all hover:-translate-y-1 hover:shadow-lg">
+      <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <Icon className="h-7 w-7" />
+      </div>
+
+      <h3 className="mt-5 text-xl font-bold text-slate-950">
+        {title}
+      </h3>
+
+      <p className="mt-3 leading-7 text-slate-600">
+        {description}
+      </p>
+
+      <button
+        type="button"
+        className="mt-6 flex items-center gap-2 text-sm font-semibold text-primary"
+      >
+        Saiba mais
+
+        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+      </button>
+    </Card>
+  );
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  text,
+}: {
+  icon: typeof MonitorSmartphone;
+  title: string;
+  text: string;
+}) {
+  return (
+    <Card className="p-5">
+      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+
+      <h3 className="mt-4 font-semibold text-slate-950">
+        {title}
+      </h3>
+
+      <p className="mt-2 text-sm leading-6 text-slate-500">
+        {text}
+      </p>
+    </Card>
   );
 }
