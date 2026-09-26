@@ -293,6 +293,8 @@ BUILD SUCCESS
 
 # 👨‍💻 Desenvolvido por
 
-Mateus Cavalcante Rodrigues
+Mateus Cavalcante Rodrigues - Desenvolvimento do projeto  
+Pablo Perri Ferreira - Protótipo de telas e ajustes 
+Caio Henrique Silva França Dib - Documentação do projeto 
 
 Projeto — Sistema de Gestão para Clínica de Pilates.
