@@ -1,85 +1,76 @@
+
 # 🧘 Clínica Pilates — Sistema de Gestão e Autoatendimento
 
-Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de um Sistema de Gestão e Autoatendimento.
+Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de uma Clínica de Pilates.
 
-O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de Engenharia de Software, Arquitetura em Camadas, APIs REST, Banco de Dados, Docker e Documentação de Software.
-
----
-
-# 📌 Funcionalidades
-
-✅ Cadastro de alunos
-
-✅ Login com autenticação segura utilizando BCrypt
-
-✅ Consulta de usuários cadastrados
-
-✅ Atualização de dados cadastrais
-
-✅ Exclusão de usuários
-
-✅ Integração Frontend + Backend
-
-✅ API REST documentada com Swagger
-
-✅ Persistência de dados em MySQL
-
-✅ Banco de dados executando em container Docker
-
-✅ Tratamento de erros e exceções
-
-✅ Testes automatizados
+O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de **Engenharia de Software, Arquitetura em Camadas, APIs REST, Banco de Dados, Docker e Documentação de Software**.
 
 ---
 
-# 🛠 Tecnologias Utilizadas
+## 📌 Funcionalidades
 
-## Frontend
-
-* React
-* TypeScript
-* Vite
-* TailwindCSS
-
-## Backend
-
-* Java 17
-* Spring Boot
-* Spring Data JPA
-* Hibernate
-* Maven
-
-## Banco de Dados
-
-* MySQL
-* Docker
-
-## Documentação
-
-* Swagger OpenAPI
-
-## Testes
-
-* JUnit 5
-* Spring Boot Test
+- ✅ Cadastro de alunos
+- ✅ Login com autenticação segura utilizando BCrypt
+- ✅ Consulta de usuários cadastrados
+- ✅ Atualização de dados cadastrais
+- ✅ Exclusão de usuários
+- ✅ Integração Frontend + Backend
+- ✅ API REST documentada com Swagger
+- ✅ Persistência de dados em MySQL
+- ✅ Banco de dados executando em container Docker
+- ✅ Tratamento de erros e exceções
+- ✅ Testes automatizados
 
 ---
 
-# 🏗 Arquitetura do Projeto
+## 🛠 Tecnologias Utilizadas
 
-O backend foi desenvolvido utilizando arquitetura em camadas:
+### Frontend
 
-* Controller
-* Service
-* Repository
-* Model
-* Config
+- React
+- TypeScript
+- Vite
+- TailwindCSS
 
-Essa organização facilita manutenção, escalabilidade e reutilização do código.
+### Backend
+
+- Java 17
+- Spring Boot
+- Spring Data JPA
+- Hibernate
+- Maven
+
+### Banco de Dados
+
+- MySQL
+- Docker
+
+### Documentação
+
+- Swagger OpenAPI
+
+### Testes
+
+- JUnit 5
+- Spring Boot Test
 
 ---
 
-# 📂 Estrutura do Projeto
+## 🏗 Arquitetura do Projeto
+
+O backend foi desenvolvido utilizando **arquitetura em camadas**, composta por:
+
+- **Controller:** gerenciamento das requisições HTTP e dos endpoints da API.
+- **Service:** implementação das regras de negócio.
+- **Repository:** comunicação com o banco de dados.
+- **Model:** representação das entidades do sistema.
+- **Config:** configurações gerais da aplicação.
+
+Essa organização facilita a manutenção, a escalabilidade e a reutilização do código.
+
+---
+
+## 📂 Estrutura do Projeto
 
 ```text
 clinica-pilates/
@@ -102,23 +93,21 @@ clinica-pilates/
 
 ---
 
-# 🚀 Como Executar o Projeto
+## 🚀 Como Executar o Projeto
 
-## 1. Clonar o repositório
+### 1. Clonar o repositório
 
 ```bash
 git clone https://github.com/Mateus0516/clinica-pilates.git
 ```
 
-## 2. Entrar na pasta do projeto
+### 2. Entrar na pasta do projeto
 
 ```bash
 cd clinica-pilates
 ```
 
----
-
-# 🐳 Banco de Dados (Docker)
+### 3. Iniciar o Banco de Dados (Docker)
 
 Executar o container MySQL:
 
@@ -126,37 +115,39 @@ Executar o container MySQL:
 docker start clinica-mysql
 ```
 
-Verificar containers ativos:
+Verificar os containers ativos:
 
 ```bash
 docker ps
 ```
 
----
+**Observação:** o container `clinica-mysql` deve estar previamente criado e configurado.
 
-# ⚙️ Executar o Backend
+### 4. Executar o Backend
+
+Em um terminal, execute:
 
 ```bash
 cd clinica-backend/clinica-backend
 mvn spring-boot:run
 ```
 
-Backend disponível em:
+O backend estará disponível em:
 
 ```text
 http://localhost:8080
 ```
 
----
+### 5. Executar o Frontend
 
-# 🌐 Executar o Frontend
+Abra outro terminal na pasta principal do projeto e execute:
 
 ```bash
 npm install
 npm run dev
 ```
 
-Frontend disponível em:
+O frontend estará disponível em:
 
 ```text
 http://localhost:5173
@@ -164,89 +155,60 @@ http://localhost:5173
 
 ---
 
-# 📘 Swagger
+## 📘 Documentação da API — Swagger
 
-Documentação da API:
+A documentação interativa da API pode ser acessada pelo endereço:
 
-```text
 http://localhost:8080/swagger-ui/index.html
-```
+
+O Swagger permite visualizar os endpoints disponíveis, consultar os parâmetros das requisições e testar as operações da API.
 
 ---
 
-# 🗄 Banco de Dados
+## 🗄 Banco de Dados
 
-Banco utilizado:
+O projeto utiliza MySQL para persistência dos dados, executado em um container Docker.
 
-```text
-MySQL
-```
-
-Nome:
-
-```text
-clinica_db
-```
-
-Container:
-
-```text
-clinica-mysql
-```
-
-Porta:
-
-```text
-3307
-```
+| Configuração | Valor |
+|---|---|
+| Banco de dados | MySQL |
+| Nome do banco | `clinica_db` |
+| Container | `clinica-mysql` |
+| Porta | `3307` |
+| ORM | JPA / Hibernate |
 
 ---
 
-# 🔐 Principais Endpoints
+## 🔐 Principais Endpoints
 
-### Cadastro de Usuário
+A API REST disponibiliza os seguintes endpoints:
 
-```http
-POST /auth/register
-```
+| Método | Endpoint | Descrição |
+|---|---|---|
+| POST | `/auth/register` | Cadastrar usuário |
+| POST | `/auth/login` | Autenticar usuário |
+| GET | `/auth/usuarios` | Listar usuários |
+| GET | `/auth/usuarios/{id}` | Buscar usuário por ID |
+| PUT | `/auth/usuarios/{id}` | Atualizar usuário |
+| DELETE | `/auth/usuarios/{id}` | Excluir usuário |
 
-### Login
+### Segurança
 
-```http
-POST /auth/login
-```
-
-### Listar Usuários
-
-```http
-GET /auth/usuarios
-```
-
-### Buscar Usuário por ID
-
-```http
-GET /auth/usuarios/{id}
-```
-
-### Atualizar Usuário
-
-```http
-PUT /auth/usuarios/{id}
-```
-
-### Excluir Usuário
-
-```http
-DELETE /auth/usuarios/{id}
-```
+O sistema utiliza **BCrypt** para armazenar senhas de forma protegida, evitando o armazenamento de senhas em texto puro.
 
 ---
 
-# 🧪 Testes Automatizados
+## 🧪 Testes Automatizados
 
-O projeto possui testes automatizados utilizando JUnit 5.
+O projeto possui testes automatizados utilizando **JUnit 5** e **Spring Boot Test**.
 
-Resultado obtido:
+Para executar os testes, acesse o diretório do backend e utilize:
+
+```bash
+mvn test
+```
+
+### Resultado obtido
 
 ```text
 Tests run: 5
@@ -255,46 +217,38 @@ Errors: 0
 BUILD SUCCESS
 ```
 
----
-
-# 📋 Requisitos Atendidos
-
-✅ Documento de Requisitos de Negócio (BRD)
-
-✅ Documento de Especificação de Requisitos (ERS/SRS)
-
-✅ Planejamento e Cronograma
-
-✅ Diagramas UML
-
-✅ API REST
-
-✅ CRUD Completo
-
-✅ Swagger Documentado
-
-✅ Tratamento de Erros
-
-✅ Testes Automatizados
-
-✅ Banco de Dados com ORM (JPA/Hibernate)
-
-✅ Docker
-
-✅ Integração Frontend + Backend
-
-✅ Arquitetura Organizada
-
-✅ Clean Code
-
-✅ README do Projeto
+Os resultados demonstram que os cinco testes executados foram concluídos sem falhas ou erros.
 
 ---
 
-# 👨‍💻 Desenvolvido por
+## 📋 Requisitos Atendidos
 
-Mateus Cavalcante Rodrigues - Desenvolvimento do projeto  
-Pablo Perri Ferreira - Protótipo de telas e ajustes 
-Caio Henrique Silva França Dib - Documentação do projeto 
+- [x] Documento de Requisitos de Negócio (BRD)
+- [x] Documento de Especificação de Requisitos (ERS/SRS)
+- [x] Planejamento e Cronograma
+- [x] Diagramas UML
+- [x] API REST
+- [x] CRUD Completo
+- [x] Swagger Documentado
+- [x] Tratamento de Erros
+- [x] Testes Automatizados
+- [x] Banco de Dados com ORM (JPA/Hibernate)
+- [x] Docker
+- [x] Integração Frontend + Backend
+- [x] Arquitetura Organizada
+- [x] Clean Code
+- [x] README do Projeto
 
-Projeto — Sistema de Gestão para Clínica de Pilates.
+---
+
+## 👨‍💻 Desenvolvido por
+
+| Integrante | Responsabilidade |
+|---|---|
+| Mateus Cavalcante Rodrigues | Desenvolvimento do projeto |
+| Pablo Perri Ferreira | Protótipo de telas e ajustes |
+| Caio Henrique Silva França Dib | Documentação do projeto |
+
+---
+
+**Projeto acadêmico — Sistema de Gestão e Autoatendimento para Clínica de Pilates.**
