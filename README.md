@@ -1,7 +1,7 @@
 
-# 🧘 Clínica Pilates — Sistema de Gestão e Autoatendimento
+# 🏥 Sistema de Gestão e Autoatendimento para Clínicas
 
-Sistema desenvolvido para gerenciamento de alunos, autenticação de usuários e suporte ao autoatendimento de uma Clínica de Pilates.
+Sistema desenvolvido para gerenciamento de pacientes, autenticação de usuários e suporte ao autoatendimento em clínicas.
 
 O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de **Engenharia de Software, Arquitetura em Camadas, APIs REST, Banco de Dados, Docker e Documentação de Software**.
 
@@ -9,7 +9,7 @@ O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de **E
 
 ## 📌 Funcionalidades
 
-- ✅ Cadastro de alunos
+- ✅ Cadastro de pacientes
 - ✅ Login com autenticação segura utilizando BCrypt
 - ✅ Consulta de usuários cadastrados
 - ✅ Atualização de dados cadastrais
@@ -90,6 +90,8 @@ clinica-pilates/
 │
 └── README.md
 ```
+
+> **Observação:** o nome da pasta original foi mantido para preservar a compatibilidade com o repositório existente.
 
 ---
 
@@ -217,7 +219,7 @@ Errors: 0
 BUILD SUCCESS
 ```
 
-Os resultados demonstram que os cinco testes executados foram concluídos sem falhas ou erros.
+Os cinco testes executados foram concluídos sem falhas ou erros.
 
 ---
 
@@ -251,4 +253,4 @@ Os resultados demonstram que os cinco testes executados foram concluídos sem fa
 
 ---
 
-**Projeto acadêmico — Sistema de Gestão e Autoatendimento para Clínica de Pilates.**
+**Projeto acadêmico — Sistema de Gestão e Autoatendimento para Clínicas.**
