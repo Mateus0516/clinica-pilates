@@ -1,16 +1,14 @@
-import { useState } from "react";
 
-import {
-  Eye,
-  EyeOff,
-} from "lucide-react";
+import { useState, type FormEvent } from "react";
+
+import { Eye, EyeOff } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 import {
-  Student,
+  type Student,
   setSession,
 } from "@/lib/clinic-store";
 
@@ -19,6 +17,31 @@ import { toast } from "sonner";
 type RegisterFormProps = {
   onLogin: (student: Student) => void;
 };
+
+type RegisterResponse = {
+  id?: number | string;
+  nome?: string;
+  email?: string;
+  sessionsRemaining?: number;
+  erro?: string;
+  message?: string;
+};
+
+const API_URL = "http://localhost:8080";
+
+function getTodayISO(): string {
+  const today = new Date();
+
+  const year = today.getFullYear();
+  const month = String(
+    today.getMonth() + 1
+  ).padStart(2, "0");
+  const day = String(
+    today.getDate()
+  ).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
 
 export function RegisterForm({
   onLogin,
@@ -43,51 +66,79 @@ export function RegisterForm({
   const [loading, setLoading] = useState(false);
 
   const submit = async (
-    event: React.FormEvent<HTMLFormElement>,
+    event: FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
-    if (loading) {
-      return;
-    }
+    if (loading) return;
 
-    if (name.trim().length < 3) {
-      toast.error(
-        "Informe seu nome completo.",
-      );
+    const normalizedName = name.trim();
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedPhone = phone.replace(/\D/g, "");
 
+    if (normalizedName.length < 3) {
+      toast.error("Informe seu nome completo.");
       return;
     }
 
     if (!birthDate) {
-      toast.error(
-        "Informe sua data de nascimento.",
-      );
-
+      toast.error("Informe sua data de nascimento.");
       return;
     }
 
-    if (phone.trim().length < 10) {
-      toast.error(
-        "Informe um telefone válido.",
-      );
+    const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
+    if (!datePattern.test(birthDate)) {
+      toast.error("Data de nascimento inválida.");
+      return;
+    }
+
+    const [year, month, day] = birthDate
+      .split("-")
+      .map(Number);
+
+    const parsedDate = new Date(
+      year,
+      month - 1,
+      day
+    );
+
+    const validDate =
+      parsedDate.getFullYear() === year &&
+      parsedDate.getMonth() === month - 1 &&
+      parsedDate.getDate() === day;
+
+    if (
+      !validDate ||
+      birthDate < "1900-01-01" ||
+      birthDate > getTodayISO()
+    ) {
+      toast.error("Informe uma data de nascimento válida.");
+      return;
+    }
+
+    if (normalizedPhone.length < 10 ||
+        normalizedPhone.length > 11) {
+      toast.error("Informe um telefone válido.");
+      return;
+    }
+
+    if (
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    ) {
+      toast.error("Informe um e-mail válido.");
       return;
     }
 
     if (password.length < 6) {
       toast.error(
-        "A senha precisa ter pelo menos 6 caracteres.",
+        "A senha precisa ter pelo menos 6 caracteres."
       );
-
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error(
-        "As senhas não coincidem.",
-      );
-
+      toast.error("As senhas não coincidem.");
       return;
     }
 
@@ -95,82 +146,86 @@ export function RegisterForm({
       setLoading(true);
 
       const response = await fetch(
-        "http://localhost:8080/auth/register",
+        `${API_URL}/auth/register`,
         {
           method: "POST",
-
           headers: {
             "Content-Type": "application/json",
           },
-
           body: JSON.stringify({
-            nome: name.trim(),
-            email: email.trim(),
+            nome: normalizedName,
+            email: normalizedEmail,
             senha: password,
-            telefone: phone.trim(),
+            telefone: normalizedPhone,
             dataNascimento: birthDate,
           }),
-        },
+        }
       );
 
+      const responseText = await response.text();
+
+      let data: RegisterResponse = {};
+
+      if (responseText) {
+        try {
+          data = JSON.parse(responseText);
+        } catch {
+          // O backend pode retornar texto em caso de erro.
+        }
+      }
+
       if (!response.ok) {
-        const errorData =
-          await response.json();
+        if (response.status === 409) {
+          throw new Error(
+            "Este e-mail já está cadastrado."
+          );
+        }
+
+        if (response.status === 403) {
+          throw new Error(
+            "Acesso bloqueado pelo servidor. Verifique o CORS."
+          );
+        }
 
         throw new Error(
-          errorData.erro ||
-            "Não foi possível criar a conta.",
+          data.erro ||
+          data.message ||
+          `Não foi possível criar a conta. Erro ${response.status}.`
         );
       }
 
-      const data =
-        await response.json();
+      if (data.id == null) {
+        toast.success(
+          "Conta criada! Faça login para continuar."
+        );
+
+        return;
+      }
 
       const studentData: Student = {
         id: String(data.id),
+        name: data.nome || normalizedName,
+        email: data.email || normalizedEmail,
 
-        name:
-          data.nome ||
-          name.trim(),
-
-        email:
-          data.email ||
-          email.trim(),
-
-        /*
-         * Valor temporário enquanto
-         * planos e pacotes ainda não
-         * estão integrados ao backend.
-         *
-         * Depois esse valor virá
-         * diretamente da API.
-         */
+        // Valor temporário até integrar os planos.
         sessionsRemaining:
           data.sessionsRemaining ?? 8,
 
-        /*
-         * A senha real não é armazenada
-         * no frontend após o cadastro.
-         */
+        // Nunca armazenar a senha real.
         password: "",
       };
 
-      setSession(
-        studentData,
-      );
+      setSession(studentData);
+      toast.success("Conta criada com sucesso!");
+      onLogin(studentData);
 
-      onLogin(
-        studentData,
-      );
-
-      toast.success(
-        "Conta criada com sucesso!",
-      );
     } catch (error) {
+      console.error("Erro ao cadastrar:", error);
+
       toast.error(
         error instanceof Error
           ? error.message
-          : "Erro ao conectar com o servidor.",
+          : "Erro ao conectar com o servidor."
       );
     } finally {
       setLoading(false);
@@ -182,7 +237,7 @@ export function RegisterForm({
       className="space-y-4"
       onSubmit={submit}
     >
-      {/* NOME */}
+      {/* NOME COMPLETO */}
       <div className="space-y-2">
         <Label htmlFor="register-name">
           Nome completo
@@ -190,11 +245,10 @@ export function RegisterForm({
 
         <Input
           id="register-name"
+          type="text"
           value={name}
           onChange={(event) =>
-            setName(
-              event.target.value,
-            )
+            setName(event.target.value)
           }
           placeholder="Seu nome completo"
           autoComplete="name"
@@ -209,16 +263,18 @@ export function RegisterForm({
           Data de nascimento
         </Label>
 
-        <Input
+        <input
           id="register-birth-date"
+          name="dataNascimento"
           type="date"
           value={birthDate}
           onChange={(event) =>
-            setBirthDate(
-              event.target.value,
-            )
+            setBirthDate(event.currentTarget.value)
           }
+          min="1900-01-01"
+          max={getTodayISO()}
           required
+          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         />
       </div>
 
@@ -233,9 +289,7 @@ export function RegisterForm({
           type="tel"
           value={phone}
           onChange={(event) =>
-            setPhone(
-              event.target.value,
-            )
+            setPhone(event.target.value)
           }
           placeholder="(61) 99999-9999"
           autoComplete="tel"
@@ -255,9 +309,7 @@ export function RegisterForm({
           type="email"
           value={email}
           onChange={(event) =>
-            setEmail(
-              event.target.value,
-            )
+            setEmail(event.target.value)
           }
           placeholder="voce@email.com"
           autoComplete="email"
@@ -276,15 +328,11 @@ export function RegisterForm({
           <Input
             id="register-password"
             type={
-              showPassword
-                ? "text"
-                : "password"
+              showPassword ? "text" : "password"
             }
             value={password}
             onChange={(event) =>
-              setPassword(
-                event.target.value,
-              )
+              setPassword(event.target.value)
             }
             placeholder="Mínimo de 6 caracteres"
             autoComplete="new-password"
@@ -297,10 +345,7 @@ export function RegisterForm({
           <button
             type="button"
             onClick={() =>
-              setShowPassword(
-                (current) =>
-                  !current,
-              )
+              setShowPassword((current) => !current)
             }
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
             aria-label={
@@ -338,9 +383,7 @@ export function RegisterForm({
             }
             value={confirmPassword}
             onChange={(event) =>
-              setConfirmPassword(
-                event.target.value,
-              )
+              setConfirmPassword(event.target.value)
             }
             placeholder="Digite a senha novamente"
             autoComplete="new-password"
@@ -354,8 +397,7 @@ export function RegisterForm({
             type="button"
             onClick={() =>
               setShowConfirmPassword(
-                (current) =>
-                  !current,
+                (current) => !current
               )
             }
             className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
@@ -374,7 +416,7 @@ export function RegisterForm({
         </div>
       </div>
 
-      {/* BOTÃO */}
+      {/* BOTÃO CRIAR CONTA */}
       <Button
         type="submit"
         className="w-full"

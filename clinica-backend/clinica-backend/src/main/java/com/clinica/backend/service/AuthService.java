@@ -1,3 +1,4 @@
+
 package com.clinica.backend.service;
 
 import java.time.LocalDate;
@@ -16,13 +17,16 @@ public class AuthService {
 
     private final UsuarioRepository usuarioRepository;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
 
     public AuthService(
             UsuarioRepository usuarioRepository,
-            BCryptPasswordEncoder passwordEncoder
+            BCryptPasswordEncoder passwordEncoder,
+            JwtService jwtService
     ) {
         this.usuarioRepository = usuarioRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
     }
 
     public Usuario cadastrar(
@@ -43,7 +47,6 @@ public class AuthService {
         usuario.setSenhaHash(
                 passwordEncoder.encode(senha)
         );
-
         usuario.setTelefone(telefone);
         usuario.setDataNascimento(dataNascimento);
         usuario.setPerfil("PACIENTE");
@@ -59,59 +62,42 @@ public class AuthService {
                 .findByEmail(email)
                 .orElseThrow(
                         () -> new RuntimeException(
-                                "Usuário não encontrado"
+                                "Credenciais inválidas"
                         )
                 );
 
-        boolean senhaCorreta =
-                passwordEncoder.matches(
-                        senha,
-                        usuario.getSenhaHash()
-                );
-
-        if (!senhaCorreta) {
+        if (!passwordEncoder.matches(
+                senha,
+                usuario.getSenhaHash()
+        )) {
             throw new RuntimeException(
-                    "Senha inválida"
+                    "Credenciais inválidas"
             );
         }
 
-        Map<String, Object> resposta =
-                new HashMap<>();
+        String token = jwtService.gerarToken(
+                usuario.getEmail()
+        );
+
+        Map<String, Object> resposta = new HashMap<>();
 
         resposta.put(
                 "mensagem",
                 "Login realizado com sucesso"
         );
 
-        resposta.put(
-                "id",
-                usuario.getId()
-        );
+        resposta.put("token", token);
+        resposta.put("tipo", "Bearer");
 
-        resposta.put(
-                "nome",
-                usuario.getNome()
-        );
-
-        resposta.put(
-                "email",
-                usuario.getEmail()
-        );
-
-        resposta.put(
-                "telefone",
-                usuario.getTelefone()
-        );
-
+        resposta.put("id", usuario.getId());
+        resposta.put("nome", usuario.getNome());
+        resposta.put("email", usuario.getEmail());
+        resposta.put("telefone", usuario.getTelefone());
         resposta.put(
                 "dataNascimento",
                 usuario.getDataNascimento()
         );
-
-        resposta.put(
-                "perfil",
-                usuario.getPerfil()
-        );
+        resposta.put("perfil", usuario.getPerfil());
 
         return resposta;
     }
@@ -134,6 +120,13 @@ public class AuthService {
                                 "Usuário não encontrado"
                         )
                 );
+
+        if (!usuario.getEmail().equals(email)
+                && usuarioRepository.findByEmail(email).isPresent()) {
+            throw new RuntimeException(
+                    "E-mail já cadastrado"
+            );
+        }
 
         usuario.setNome(nome);
         usuario.setEmail(email);

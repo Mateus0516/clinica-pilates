@@ -86,7 +86,19 @@ export function Sidebar({
       return "historico";
     }
 
-    if (pathname === "/perfil") {
+    /*
+     * Páginas relacionadas ao perfil.
+     *
+     * Mesmo sendo rotas diferentes, todas fazem
+     * parte da área de Perfil do paciente.
+     */
+    if (
+      pathname === "/perfil" ||
+      pathname === "/detalhes-plano" ||
+      pathname === "/meus-planos" ||
+      pathname === "/gerenciar-pagamentos" ||
+      pathname === "/central-ajuda"
+    ) {
       return "perfil";
     }
 

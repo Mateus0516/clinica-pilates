@@ -1,3 +1,4 @@
+
 package com.clinica.backend.controller;
 
 import java.time.LocalDate;
@@ -8,14 +9,15 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import com.clinica.backend.model.Usuario;
+import com.clinica.backend.repository.UsuarioRepository;
 import com.clinica.backend.service.AuthService;
 
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = "*")
 @Tag(
     name = "Autenticação",
     description = "Endpoints para cadastro, login e gerenciamento de usuários"
@@ -23,14 +25,19 @@ import com.clinica.backend.service.AuthService;
 public class AuthController {
 
     private final AuthService authService;
+    private final UsuarioRepository usuarioRepository;
 
-    public AuthController(AuthService authService) {
+    public AuthController(
+            AuthService authService,
+            UsuarioRepository usuarioRepository
+    ) {
         this.authService = authService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Operation(
         summary = "Cadastrar paciente",
-        description = "Cria uma nova conta de paciente no sistema com senha criptografada usando BCrypt."
+        description = "Cria uma nova conta de paciente com senha criptografada usando BCrypt."
     )
     @PostMapping("/register")
     public ResponseEntity<Usuario> cadastrar(
@@ -51,7 +58,7 @@ public class AuthController {
 
     @Operation(
         summary = "Login do usuário",
-        description = "Autentica um usuário pelo email e senha cadastrados."
+        description = "Autentica um usuário pelo email e senha e retorna um token JWT."
     )
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(
@@ -65,9 +72,42 @@ public class AuthController {
         );
     }
 
+    // NOVO ENDPOINT DEFINITIVO
+    @Operation(
+        summary = "Consultar usuário autenticado",
+        description = "Retorna os dados do usuário identificado pelo token JWT."
+    )
+    @GetMapping("/me")
+    public ResponseEntity<UsuarioResponse> consultarMeuPerfil(
+            Authentication authentication
+    ) {
+        String email = authentication.getName();
+
+        Usuario usuario = usuarioRepository
+                .findByEmail(email)
+                .orElseThrow(() ->
+                        new org.springframework.web.server
+                                .ResponseStatusException(
+                                    org.springframework.http.HttpStatus.NOT_FOUND,
+                                    "Usuário não encontrado"
+                                )
+                );
+
+        UsuarioResponse response = new UsuarioResponse(
+                usuario.getId(),
+                usuario.getNome(),
+                usuario.getEmail(),
+                usuario.getTelefone(),
+                usuario.getDataNascimento(),
+                usuario.getPerfil()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
     @Operation(
         summary = "Listar usuários",
-        description = "Lista todos os usuários cadastrados."
+        description = "Lista todos os usuários cadastrados. Acesso exclusivo de administradores."
     )
     @GetMapping("/usuarios")
     public ResponseEntity<List<Usuario>> listarUsuarios() {
@@ -83,7 +123,7 @@ public class AuthController {
 
     @Operation(
         summary = "Atualizar usuário",
-        description = "Atualiza os dados de um usuário pelo ID."
+        description = "Atualiza os dados de um usuário pelo ID. Acesso exclusivo de administradores."
     )
     @PutMapping("/usuarios/{id}")
     public ResponseEntity<Usuario> atualizarUsuario(
@@ -106,7 +146,7 @@ public class AuthController {
 
     @Operation(
         summary = "Deletar usuário",
-        description = "Remove um usuário pelo ID."
+        description = "Remove um usuário pelo ID. Acesso exclusivo de administradores."
     )
     @DeleteMapping("/usuarios/{id}")
     public ResponseEntity<Void> deletarUsuario(
@@ -116,6 +156,16 @@ public class AuthController {
 
         return ResponseEntity.noContent().build();
     }
+
+    // DTO: impede exposição do hash da senha
+    public record UsuarioResponse(
+            Long id,
+            String nome,
+            String email,
+            String telefone,
+            LocalDate dataNascimento,
+            String perfil
+    ) {}
 
     public record CadastroRequest(
             String nome,

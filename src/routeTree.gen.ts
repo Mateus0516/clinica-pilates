@@ -12,8 +12,12 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PacienteRouteImport } from './routes/paciente'
 import { Route as NotificacoesRouteImport } from './routes/notificacoes'
+import { Route as MeusPlanosRouteImport } from './routes/meus-planos'
 import { Route as HistoricoRouteImport } from './routes/historico'
+import { Route as GerenciarPagamentosRouteImport } from './routes/gerenciar-pagamentos'
+import { Route as DetalhesPlanoRouteImport } from './routes/detalhes-plano'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CentralAjudaRouteImport } from './routes/central-ajuda'
 import { Route as AulasRouteImport } from './routes/aulas'
 import { Route as AgendaRouteImport } from './routes/agenda'
 import { Route as AcessoRouteImport } from './routes/acesso'
@@ -34,14 +38,34 @@ const NotificacoesRoute = NotificacoesRouteImport.update({
   path: '/notificacoes',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MeusPlanosRoute = MeusPlanosRouteImport.update({
+  id: '/meus-planos',
+  path: '/meus-planos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HistoricoRoute = HistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GerenciarPagamentosRoute = GerenciarPagamentosRouteImport.update({
+  id: '/gerenciar-pagamentos',
+  path: '/gerenciar-pagamentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DetalhesPlanoRoute = DetalhesPlanoRouteImport.update({
+  id: '/detalhes-plano',
+  path: '/detalhes-plano',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CentralAjudaRoute = CentralAjudaRouteImport.update({
+  id: '/central-ajuda',
+  path: '/central-ajuda',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AulasRoute = AulasRouteImport.update({
@@ -70,8 +94,12 @@ export interface FileRoutesByFullPath {
   '/acesso': typeof AcessoRoute
   '/agenda': typeof AgendaRoute
   '/aulas': typeof AulasRoute
+  '/central-ajuda': typeof CentralAjudaRoute
   '/dashboard': typeof DashboardRoute
+  '/detalhes-plano': typeof DetalhesPlanoRoute
+  '/gerenciar-pagamentos': typeof GerenciarPagamentosRoute
   '/historico': typeof HistoricoRoute
+  '/meus-planos': typeof MeusPlanosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/paciente': typeof PacienteRoute
   '/perfil': typeof PerfilRoute
@@ -81,8 +109,12 @@ export interface FileRoutesByTo {
   '/acesso': typeof AcessoRoute
   '/agenda': typeof AgendaRoute
   '/aulas': typeof AulasRoute
+  '/central-ajuda': typeof CentralAjudaRoute
   '/dashboard': typeof DashboardRoute
+  '/detalhes-plano': typeof DetalhesPlanoRoute
+  '/gerenciar-pagamentos': typeof GerenciarPagamentosRoute
   '/historico': typeof HistoricoRoute
+  '/meus-planos': typeof MeusPlanosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/paciente': typeof PacienteRoute
   '/perfil': typeof PerfilRoute
@@ -93,8 +125,12 @@ export interface FileRoutesById {
   '/acesso': typeof AcessoRoute
   '/agenda': typeof AgendaRoute
   '/aulas': typeof AulasRoute
+  '/central-ajuda': typeof CentralAjudaRoute
   '/dashboard': typeof DashboardRoute
+  '/detalhes-plano': typeof DetalhesPlanoRoute
+  '/gerenciar-pagamentos': typeof GerenciarPagamentosRoute
   '/historico': typeof HistoricoRoute
+  '/meus-planos': typeof MeusPlanosRoute
   '/notificacoes': typeof NotificacoesRoute
   '/paciente': typeof PacienteRoute
   '/perfil': typeof PerfilRoute
@@ -106,8 +142,12 @@ export interface FileRouteTypes {
     | '/acesso'
     | '/agenda'
     | '/aulas'
+    | '/central-ajuda'
     | '/dashboard'
+    | '/detalhes-plano'
+    | '/gerenciar-pagamentos'
     | '/historico'
+    | '/meus-planos'
     | '/notificacoes'
     | '/paciente'
     | '/perfil'
@@ -117,8 +157,12 @@ export interface FileRouteTypes {
     | '/acesso'
     | '/agenda'
     | '/aulas'
+    | '/central-ajuda'
     | '/dashboard'
+    | '/detalhes-plano'
+    | '/gerenciar-pagamentos'
     | '/historico'
+    | '/meus-planos'
     | '/notificacoes'
     | '/paciente'
     | '/perfil'
@@ -128,8 +172,12 @@ export interface FileRouteTypes {
     | '/acesso'
     | '/agenda'
     | '/aulas'
+    | '/central-ajuda'
     | '/dashboard'
+    | '/detalhes-plano'
+    | '/gerenciar-pagamentos'
     | '/historico'
+    | '/meus-planos'
     | '/notificacoes'
     | '/paciente'
     | '/perfil'
@@ -140,8 +188,12 @@ export interface RootRouteChildren {
   AcessoRoute: typeof AcessoRoute
   AgendaRoute: typeof AgendaRoute
   AulasRoute: typeof AulasRoute
+  CentralAjudaRoute: typeof CentralAjudaRoute
   DashboardRoute: typeof DashboardRoute
+  DetalhesPlanoRoute: typeof DetalhesPlanoRoute
+  GerenciarPagamentosRoute: typeof GerenciarPagamentosRoute
   HistoricoRoute: typeof HistoricoRoute
+  MeusPlanosRoute: typeof MeusPlanosRoute
   NotificacoesRoute: typeof NotificacoesRoute
   PacienteRoute: typeof PacienteRoute
   PerfilRoute: typeof PerfilRoute
@@ -170,6 +222,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof NotificacoesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/meus-planos': {
+      id: '/meus-planos'
+      path: '/meus-planos'
+      fullPath: '/meus-planos'
+      preLoaderRoute: typeof MeusPlanosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/historico': {
       id: '/historico'
       path: '/historico'
@@ -177,11 +236,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoricoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gerenciar-pagamentos': {
+      id: '/gerenciar-pagamentos'
+      path: '/gerenciar-pagamentos'
+      fullPath: '/gerenciar-pagamentos'
+      preLoaderRoute: typeof GerenciarPagamentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/detalhes-plano': {
+      id: '/detalhes-plano'
+      path: '/detalhes-plano'
+      fullPath: '/detalhes-plano'
+      preLoaderRoute: typeof DetalhesPlanoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/dashboard': {
       id: '/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/central-ajuda': {
+      id: '/central-ajuda'
+      path: '/central-ajuda'
+      fullPath: '/central-ajuda'
+      preLoaderRoute: typeof CentralAjudaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/aulas': {
@@ -220,8 +300,12 @@ const rootRouteChildren: RootRouteChildren = {
   AcessoRoute: AcessoRoute,
   AgendaRoute: AgendaRoute,
   AulasRoute: AulasRoute,
+  CentralAjudaRoute: CentralAjudaRoute,
   DashboardRoute: DashboardRoute,
+  DetalhesPlanoRoute: DetalhesPlanoRoute,
+  GerenciarPagamentosRoute: GerenciarPagamentosRoute,
   HistoricoRoute: HistoricoRoute,
+  MeusPlanosRoute: MeusPlanosRoute,
   NotificacoesRoute: NotificacoesRoute,
   PacienteRoute: PacienteRoute,
   PerfilRoute: PerfilRoute,

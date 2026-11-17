@@ -92,14 +92,20 @@ function ProfilePage() {
   const [zipCode, setZipCode] =
     useState("");
 
-  const [emailNotifications, setEmailNotifications] =
-    useState(true);
+  const [
+    emailNotifications,
+    setEmailNotifications,
+  ] = useState(true);
 
-  const [whatsappNotifications, setWhatsappNotifications] =
-    useState(true);
+  const [
+    whatsappNotifications,
+    setWhatsappNotifications,
+  ] = useState(true);
 
-  const [pushNotifications, setPushNotifications] =
-    useState(true);
+  const [
+    pushNotifications,
+    setPushNotifications,
+  ] = useState(true);
 
   useEffect(() => {
     const currentStudent = getSession();
@@ -131,56 +137,56 @@ function ProfilePage() {
   };
 
   const handleNavigation = (
-  section: SidebarSection,
-) => {
-  if (section === "inicio") {
-    navigate({
-      to: "/dashboard",
-    });
+    section: SidebarSection,
+  ) => {
+    if (section === "inicio") {
+      navigate({
+        to: "/dashboard",
+      });
 
-    return;
-  }
+      return;
+    }
 
-  if (section === "agenda") {
-    navigate({
-      to: "/agenda",
-    });
+    if (section === "agenda") {
+      navigate({
+        to: "/agenda",
+      });
 
-    return;
-  }
+      return;
+    }
 
-  if (section === "aulas") {
-    navigate({
-      to: "/aulas",
-    });
+    if (section === "aulas") {
+      navigate({
+        to: "/aulas",
+      });
 
-    return;
-  }
+      return;
+    }
 
-  if (section === "historico") {
-    navigate({
-      to: "/historico",
-    });
+    if (section === "historico") {
+      navigate({
+        to: "/historico",
+      });
 
-    return;
-  }
+      return;
+    }
 
-  if (section === "perfil") {
-    navigate({
-      to: "/perfil",
-    });
+    if (section === "perfil") {
+      navigate({
+        to: "/perfil",
+      });
 
-    return;
-  }
+      return;
+    }
 
-  if (section === "notificacoes") {
-    navigate({
-      to: "/notificacoes",
-    });
+    if (section === "notificacoes") {
+      navigate({
+        to: "/notificacoes",
+      });
 
-    return;
-  }
-};
+      return;
+    }
+  };
 
   const myBookings = useMemo(() => {
     if (!student) {
@@ -243,8 +249,10 @@ function ProfilePage() {
   }
 
   const totalSessions = 16;
+
   const usedSessions = Math.max(
-    totalSessions - student.sessionsRemaining,
+    totalSessions -
+      student.sessionsRemaining,
     0,
   );
 
@@ -276,7 +284,8 @@ function ProfilePage() {
             </h1>
 
             <p className="mt-3 text-slate-600">
-              Atualize suas informações pessoais e preferências.
+              Atualize suas informações
+              pessoais e preferências.
             </p>
           </div>
 
@@ -291,13 +300,8 @@ function ProfilePage() {
         </div>
 
         <div className="mt-8 grid gap-6 xl:grid-cols-[1fr_340px]">
-
-          {/* ====================================== */}
           {/* COLUNA PRINCIPAL */}
-          {/* ====================================== */}
-
           <div className="space-y-6">
-
             {/* PERFIL */}
             <Card className="p-6">
               <div className="flex flex-wrap items-center gap-5">
@@ -320,7 +324,8 @@ function ProfilePage() {
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-primary" />
 
-                      {phone || "Telefone não informado"}
+                      {phone ||
+                        "Telefone não informado"}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -342,7 +347,8 @@ function ProfilePage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Atualize suas informações pessoais.
+                    Atualize suas informações
+                    pessoais.
                   </p>
                 </div>
 
@@ -355,8 +361,6 @@ function ProfilePage() {
               </div>
 
               <div className="mt-6 grid gap-5 md:grid-cols-2">
-
-                {/* NOME */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-name">
                     Nome completo
@@ -366,12 +370,13 @@ function ProfilePage() {
                     id="profile-name"
                     value={name}
                     onChange={(event) =>
-                      setName(event.target.value)
+                      setName(
+                        event.target.value,
+                      )
                     }
                   />
                 </div>
 
-                {/* DATA NASCIMENTO */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-birth">
                     Data de nascimento
@@ -382,12 +387,13 @@ function ProfilePage() {
                     type="date"
                     value={birthDate}
                     onChange={(event) =>
-                      setBirthDate(event.target.value)
+                      setBirthDate(
+                        event.target.value,
+                      )
                     }
                   />
                 </div>
 
-                {/* EMAIL */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-email">
                     E-mail
@@ -398,12 +404,13 @@ function ProfilePage() {
                     type="email"
                     value={email}
                     onChange={(event) =>
-                      setEmail(event.target.value)
+                      setEmail(
+                        event.target.value,
+                      )
                     }
                   />
                 </div>
 
-                {/* TELEFONE */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-phone">
                     Telefone
@@ -414,13 +421,14 @@ function ProfilePage() {
                     type="tel"
                     value={phone}
                     onChange={(event) =>
-                      setPhone(event.target.value)
+                      setPhone(
+                        event.target.value,
+                      )
                     }
                     placeholder="(61) 99999-9999"
                   />
                 </div>
 
-                {/* ENDEREÇO */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-address">
                     Endereço
@@ -430,13 +438,14 @@ function ProfilePage() {
                     id="profile-address"
                     value={address}
                     onChange={(event) =>
-                      setAddress(event.target.value)
+                      setAddress(
+                        event.target.value,
+                      )
                     }
                     placeholder="Rua, número, complemento"
                   />
                 </div>
 
-                {/* BAIRRO */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-district">
                     Bairro
@@ -446,12 +455,13 @@ function ProfilePage() {
                     id="profile-district"
                     value={district}
                     onChange={(event) =>
-                      setDistrict(event.target.value)
+                      setDistrict(
+                        event.target.value,
+                      )
                     }
                   />
                 </div>
 
-                {/* CIDADE */}
                 <div className="space-y-2">
                   <Label htmlFor="profile-city">
                     Cidade
@@ -461,12 +471,13 @@ function ProfilePage() {
                     id="profile-city"
                     value={city}
                     onChange={(event) =>
-                      setCity(event.target.value)
+                      setCity(
+                        event.target.value,
+                      )
                     }
                   />
                 </div>
 
-                {/* ESTADO + CEP */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="profile-state">
@@ -477,7 +488,9 @@ function ProfilePage() {
                       id="profile-state"
                       value={state}
                       onChange={(event) =>
-                        setState(event.target.value)
+                        setState(
+                          event.target.value,
+                        )
                       }
                       placeholder="DF"
                       maxLength={2}
@@ -493,7 +506,9 @@ function ProfilePage() {
                       id="profile-zip"
                       value={zipCode}
                       onChange={(event) =>
-                        setZipCode(event.target.value)
+                        setZipCode(
+                          event.target.value,
+                        )
                       }
                       placeholder="00000-000"
                     />
@@ -511,7 +526,8 @@ function ProfilePage() {
                   </h2>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Gerencie sua senha e segurança da conta.
+                    Gerencie sua senha e
+                    segurança da conta.
                   </p>
                 </div>
 
@@ -525,6 +541,7 @@ function ProfilePage() {
                   }
                 >
                   <KeyRound className="mr-2 h-4 w-4" />
+
                   Alterar senha
                 </Button>
               </div>
@@ -540,7 +557,8 @@ function ProfilePage() {
                   </p>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Sua senha é armazenada de forma criptografada.
+                    Sua senha é armazenada de
+                    forma criptografada.
                   </p>
                 </div>
 
@@ -557,7 +575,8 @@ function ProfilePage() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Escolha como deseja receber nossas comunicações.
+                Escolha como deseja receber
+                nossas comunicações.
               </p>
 
               <div className="mt-5 divide-y divide-slate-100">
@@ -565,7 +584,9 @@ function ProfilePage() {
                   icon={Mail}
                   title="E-mails"
                   description="Receber novidades e informações por e-mail"
-                  enabled={emailNotifications}
+                  enabled={
+                    emailNotifications
+                  }
                   onChange={() =>
                     setEmailNotifications(
                       (current) => !current,
@@ -577,7 +598,9 @@ function ProfilePage() {
                   icon={Phone}
                   title="WhatsApp"
                   description="Receber lembretes e avisos por WhatsApp"
-                  enabled={whatsappNotifications}
+                  enabled={
+                    whatsappNotifications
+                  }
                   onChange={() =>
                     setWhatsappNotifications(
                       (current) => !current,
@@ -589,7 +612,9 @@ function ProfilePage() {
                   icon={Bell}
                   title="Notificações push"
                   description="Receber notificações no aplicativo"
-                  enabled={pushNotifications}
+                  enabled={
+                    pushNotifications
+                  }
                   onChange={() =>
                     setPushNotifications(
                       (current) => !current,
@@ -600,12 +625,8 @@ function ProfilePage() {
             </Card>
           </div>
 
-          {/* ====================================== */}
-          {/* COLUNA LATERAL - PROTÓTIPO ORIGINAL */}
-          {/* ====================================== */}
-
+          {/* COLUNA LATERAL */}
           <div className="space-y-6">
-
             {/* SEU PLANO */}
             <Card className="p-6">
               <div className="flex items-center gap-3">
@@ -624,7 +645,8 @@ function ProfilePage() {
                 </p>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Próxima renovação: 10/09/2026
+                  Próxima renovação:{" "}
+                  10/09/2026
                 </p>
               </div>
 
@@ -642,7 +664,8 @@ function ProfilePage() {
 
                   <p className="mt-1 text-2xl font-bold text-slate-950">
                     {student.sessionsRemaining}{" "}
-                    {student.sessionsRemaining === 1
+                    {student.sessionsRemaining ===
+                    1
                       ? "sessão"
                       : "sessões"}
                   </p>
@@ -659,15 +682,17 @@ function ProfilePage() {
               </div>
 
               <p className="mt-3 text-sm text-slate-500">
-                {usedSessions} de {totalSessions} sessões utilizadas
+                {usedSessions} de{" "}
+                {totalSessions} sessões
+                utilizadas
               </p>
 
               <button
                 type="button"
                 onClick={() =>
-                  toast.info(
-                    "Detalhes do plano serão implementados em seguida.",
-                  )
+                  navigate({
+                    to: "/detalhes-plano",
+                  })
                 }
                 className="mt-6 flex w-full items-center justify-between border-t border-slate-100 pt-5 text-sm font-semibold text-primary transition hover:opacity-80"
               >
@@ -757,14 +782,13 @@ function ProfilePage() {
               </h2>
 
               <div className="mt-5 space-y-1">
-
                 {/* PAGAMENTOS */}
                 <button
                   type="button"
                   onClick={() =>
-                    toast.info(
-                      "Gerenciamento de pagamentos será implementado em seguida.",
-                    )
+                    navigate({
+                      to: "/gerenciar-pagamentos",
+                    })
                   }
                   className="flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left text-sm text-slate-600 transition hover:bg-slate-50 hover:text-primary"
                 >
@@ -777,13 +801,13 @@ function ProfilePage() {
                   <ChevronRight className="h-5 w-5" />
                 </button>
 
-                {/* PLANOS */}
+                {/* MEUS PLANOS */}
                 <button
                   type="button"
                   onClick={() =>
-                    toast.info(
-                      "Meus planos será implementado em seguida.",
-                    )
+                    navigate({
+                      to: "/meus-planos",
+                    })
                   }
                   className="flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left text-sm text-slate-600 transition hover:bg-slate-50 hover:text-primary"
                 >
@@ -800,9 +824,9 @@ function ProfilePage() {
                 <button
                   type="button"
                   onClick={() =>
-                    toast.info(
-                      "Central de ajuda será implementada em seguida.",
-                    )
+                    navigate({
+                      to: "/central-ajuda",
+                    })
                   }
                   className="flex w-full items-center gap-3 rounded-lg px-2 py-3 text-left text-sm text-slate-600 transition hover:bg-slate-50 hover:text-primary"
                 >
