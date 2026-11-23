@@ -1,5 +1,5 @@
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
 import {
-  useEffect,
   useState,
 } from "react";
 
@@ -21,8 +21,9 @@ import type {
 } from "@/lib/clinic-store";
 
 import {
-  getStudentNotifications,
-  markNotificationAsRead,
+  useNotifications,
+  useUnreadNotifications,
+  useNotificationChange,
   type NotificationItem,
 } from "@/lib/notification-store";
 
@@ -42,10 +43,9 @@ export function DashboardHeader({
     setNotificationsOpen,
   ] = useState(false);
 
-  const [
-    notifications,
-    setNotifications,
-  ] = useState<NotificationItem[]>([]);
+  const notifications = useNotifications();
+  const unread = useUnreadNotifications();
+  const change = useNotificationChange();
 
   const firstName =
     student.name?.trim().split(" ")[0] ||
@@ -54,77 +54,14 @@ export function DashboardHeader({
   const initial =
     firstName.charAt(0).toUpperCase();
 
-  /*
-   * Atualiza as notificações
-   * do paciente atual.
-   */
-  const refreshNotifications = () => {
-    const updatedNotifications =
-      getStudentNotifications(
-        student.id,
-      );
+  const unreadCount = unread.data?.total ?? 0;
+  const recentNotifications = notifications.data?.slice(0, 4) ?? [];
 
-    setNotifications(
-      updatedNotifications,
-    );
-  };
-
-  /*
-   * Carrega as notificações e
-   * escuta alterações feitas
-   * em outras partes do sistema.
-   */
-  useEffect(() => {
-    refreshNotifications();
-
-    const handleNotificationsUpdated =
-      () => {
-        refreshNotifications();
-      };
-
-    window.addEventListener(
-      "timely-notifications-updated",
-      handleNotificationsUpdated,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "timely-notifications-updated",
-        handleNotificationsUpdated,
-      );
-    };
-  }, [student.id]);
-
-  /*
-   * Quantidade de notificações
-   * ainda não lidas.
-   */
-  const unreadCount =
-    notifications.filter(
-      (notification) =>
-        !notification.read,
-    ).length;
-
-  /*
-   * Mostra somente as quatro
-   * notificações mais recentes.
-   */
-  const recentNotifications =
-    notifications.slice(0, 4);
-
-  /*
-   * Marca uma notificação
-   * individual como lida.
-   */
-  const handleNotificationClick = (
-    notification: NotificationItem,
-  ) => {
-    if (!notification.read) {
-      markNotificationAsRead(
-        notification.id,
-      );
-
-      refreshNotifications();
+  const handleNotificationClick = (notification: NotificationItem) => {
+    if (!notification.read) change.mutate({ action: "read", id: notification.id });
+    if (notification.destination) {
+      setNotificationsOpen(false);
+      void navigate({ to: notification.destination });
     }
   };
 
@@ -271,7 +208,9 @@ export function DashboardHeader({
 
               {/* LISTA */}
               <div className="max-h-[360px] overflow-y-auto">
-                {recentNotifications.length ===
+                <SchedulingFeedback query={notifications} />
+                <SchedulingFeedback query={unread} />
+                {notifications.isSuccess && (recentNotifications.length ===
                 0 ? (
                   <div className="px-6 py-10 text-center">
                     <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
@@ -364,7 +303,7 @@ export function DashboardHeader({
                       );
                     },
                   )
-                )}
+                ))}
               </div>
 
               {/* RODAPÉ */}

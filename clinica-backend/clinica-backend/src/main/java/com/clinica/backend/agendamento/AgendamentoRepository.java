@@ -1,5 +1,7 @@
 package com.clinica.backend.agendamento;
 
+import com.clinica.backend.notificacao.CandidatoNotificacao;
+import com.clinica.backend.notificacao.Notificacao.Evento;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -28,6 +30,15 @@ interface AgendamentoRepository extends JpaRepository<Agendamento, Long> {
             group by a.data, a.horario, a.instrutor.codigo
             """)
     List<Ocupacao> contarPorHorario(@Param("inicio") LocalDate inicio, @Param("fim") LocalDate fim);
+
+    @Query("""
+            select r.paciente.id as pacienteId, r.id as origemId from Agendamento r join r.aula a
+            where r.canceladoEm is null and r.paciente.perfil = 'PACIENTE'
+              and a.data between :inicio and :fim
+              and not exists (select n.id from Notificacao n where n.paciente = r.paciente
+                              and n.origemId = r.id and n.evento = :evento)
+            """)
+    List<CandidatoNotificacao> candidatosLembrete(LocalDate inicio, LocalDate fim, Evento evento);
 
     interface Ocupacao {
         LocalDate getData();

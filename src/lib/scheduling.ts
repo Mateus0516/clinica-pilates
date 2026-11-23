@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ApiError } from "./api";
 import { authenticatedRequest, getPatient } from "./auth";
-import { addBookingNotificationOnce } from "./notification-store";
 
 export type Slot = {
   data: string;
@@ -171,19 +170,6 @@ export function useAppointmentChange() {
         : "";
       const title = canceled ? "Aula cancelada" : "Aula agendada";
       toast.success(detail ? `${title}. ${detail}` : title);
-      try {
-        addBookingNotificationOnce({
-          studentId: String(id),
-          bookingId: String(appointment.id),
-          title,
-          description:
-            `${calendarDate(appointment.data).toLocaleDateString("pt-BR")} às ${appointment.horario} com Prof. ${appointment.instrutor}. ${detail}`.trim(),
-          time: "Agora",
-          type: canceled ? "cancelamento" : "confirmacao",
-        });
-      } catch {
-        // Local notifications are optional. The reservation was already persisted by the API.
-      }
     },
     onError: (error) => {
       if (id !== undefined && getPatient()?.id === id) toast.error(schedulingError(error));

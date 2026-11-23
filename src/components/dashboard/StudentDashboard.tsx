@@ -1,14 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
 
 import type { Student } from "@/lib/clinic-store";
 import {
-  calendarDate,
   calendarKey,
   clinicToday,
   clinicWeek,
-  hoursUntil,
   useAppointmentChange,
   useAppointmentHistory,
   useAppointments,
@@ -17,7 +15,6 @@ import {
   type Appointment,
   type Slot,
 } from "@/lib/scheduling";
-import { addBookingNotificationOnce } from "@/lib/notification-store";
 import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
 
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
@@ -58,24 +55,6 @@ export function StudentDashboard({ student, onLogout }: StudentDashboardProps) {
         ].filter((booking) => booking.data.startsWith(month) && booking.status !== "CANCELADO")
           .length
       : undefined;
-
-  useEffect(() => {
-    if (!nextBooking) return;
-    const hours = hoursUntil(nextBooking);
-    if (hours <= 0 || hours > 24) return;
-    try {
-      addBookingNotificationOnce({
-        studentId: student.id,
-        bookingId: String(nextBooking.id),
-        title: "Próxima aula",
-        description: `Sua aula com Prof. ${nextBooking.instrutor} é em ${calendarDate(nextBooking.data).toLocaleDateString("pt-BR")} às ${nextBooking.horario}.`,
-        time: "Agora",
-        type: "aula",
-      });
-    } catch {
-      // An unavailable local reminder should not block the dashboard.
-    }
-  }, [nextBooking, student.id]);
 
   const book = (slot: Slot) =>
     change.mutateAsync({ type: "reserve", slot }).then(

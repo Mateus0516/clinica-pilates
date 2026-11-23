@@ -2,6 +2,8 @@ package com.clinica.backend.planos;
 
 import com.clinica.backend.agendamento.SaldoSessoesService;
 import com.clinica.backend.model.Usuario;
+import com.clinica.backend.notificacao.Notificacao.Evento;
+import com.clinica.backend.notificacao.NotificacaoService;
 import com.clinica.backend.repository.UsuarioRepository;
 import com.clinica.backend.service.JwtService.Identidade;
 import java.time.Clock;
@@ -25,16 +27,18 @@ class PlanosService {
     private final UsuarioRepository usuarios;
     private final SaldoSessoesService saldos;
     private final Clock relogio;
+    private final NotificacaoService notificacoes;
 
     PlanosService(PlanoRepository planos, ContratacaoPlanoRepository contratacoes,
                   PagamentoPlanoRepository pagamentos, UsuarioRepository usuarios, SaldoSessoesService saldos,
-                  Clock relogio) {
+                  Clock relogio, NotificacaoService notificacoes) {
         this.planos = planos;
         this.contratacoes = contratacoes;
         this.pagamentos = pagamentos;
         this.usuarios = usuarios;
         this.saldos = saldos;
         this.relogio = relogio;
+        this.notificacoes = notificacoes;
     }
 
     public List<PlanosDto.Oferta> catalogo() {
@@ -135,6 +139,13 @@ class PlanosService {
         contratacao.ativar(agora.atZone(relogio.getZone()).toLocalDate());
         pagamento.registrarSimulacao(agora, metodo.forma());
         saldos.creditar(paciente, contratacao.getSessoesContratadas());
+        String nome = contratacao.getNomeContratado();
+        notificacoes.registrar(paciente, Evento.PAGAMENTO, pagamento.getId(), "Pagamento simulado confirmado",
+                "O pagamento simulado de " + nome + " foi registrado.", agora);
+        boolean renovacao = contratacao.getRenovacaoDeId() != null;
+        notificacoes.registrar(paciente, renovacao ? Evento.PLANO_RENOVADO : Evento.PLANO_ATIVADO,
+                contratacao.getId(), renovacao ? "Plano renovado" : "Plano ativado",
+                nome + ": " + contratacao.getSessoesContratadas() + " sessões creditadas.", agora);
         return pagamento(pagamento);
     }
 

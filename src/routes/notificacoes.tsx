@@ -5,7 +5,6 @@ import {
 } from "@tanstack/react-router";
 
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -25,19 +24,9 @@ import { PatientLayout } from "@/components/layout/PatientLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-import {
-  Student,
-  getSession,
-} from "@/lib/clinic-store";
-
-import {
-  NotificationItem,
-  getStudentNotifications,
-  markAllNotificationsAsRead,
-  markNotificationAsRead,
-  removeAllStudentNotifications,
-  removeNotification,
-} from "@/lib/notification-store";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { Toaster } from "sonner";
+import { useNotificationChange, useNotifications, useUnreadNotifications, type NotificationItem } from "@/lib/notification-store";
 
 export const Route = createFileRoute("/notificacoes")({
   ssr: false,
@@ -56,86 +45,16 @@ type SidebarSection =
 function NotificationsPage() {
   const navigate = useNavigate();
 
-  const [student, setStudent] =
-    useState<Student | null>(null);
-
-  const [ready, setReady] =
-    useState(false);
-
-  const [
-    notifications,
-    setNotifications,
-  ] = useState<NotificationItem[]>([]);
-
-  const [filter, setFilter] =
-    useState<"todas" | "naoLidas">(
-      "todas",
-    );
-
-  const [
-    deleteAllConfirmationOpen,
-    setDeleteAllConfirmationOpen,
-  ] = useState(false);
-
-  const loadNotifications = (
-    studentId: string,
-  ) => {
-    setNotifications(
-      getStudentNotifications(
-        studentId,
-      ),
-    );
-  };
-
-  useEffect(() => {
-    const currentStudent =
-      getSession();
-
-    if (!currentStudent) {
-      navigate({
-        to: "/paciente",
-        replace: true,
-      });
-
-      return;
-    }
-
-    setStudent(currentStudent);
-
-    loadNotifications(
-      currentStudent.id,
-    );
-
-    setReady(true);
-
-    const handleNotificationsUpdated =
-      () => {
-        loadNotifications(
-          currentStudent.id,
-        );
-      };
-
-    window.addEventListener(
-      "timely-notifications-updated",
-      handleNotificationsUpdated,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "timely-notifications-updated",
-        handleNotificationsUpdated,
-      );
-    };
-  }, [navigate]);
+  const list = useNotifications();
+  const unread = useUnreadNotifications();
+  const change = useNotificationChange();
+  const notifications = list.data ?? [];
+  const [filter, setFilter] = useState<"todas" | "naoLidas">("todas");
+  const [deleteTarget, setDeleteTarget] = useState<"all" | number | null>(null);
 
   const handleLogout = () => {
     logout();
-    setStudent(null);
-
-    navigate({
-      to: "/acesso",
-      replace: true,
-    });
+    void navigate({ to: "/acesso", replace: true });
   };
 
   const handleNavigation = (
@@ -156,93 +75,22 @@ function NotificationsPage() {
     });
   };
 
-  const unreadCount =
-    notifications.filter(
-      (notification) =>
-        !notification.read,
-    ).length;
+  const unreadCount = unread.data?.total ?? 0;
+  const filteredNotifications = useMemo(
+    () => filter === "naoLidas" ? notifications.filter((item) => !item.read) : notifications,
+    [filter, notifications],
+  );
 
-  const filteredNotifications =
-    useMemo(() => {
-      if (
-        filter === "naoLidas"
-      ) {
-        return notifications.filter(
-          (notification) =>
-            !notification.read,
-        );
-      }
-
-      return notifications;
-    }, [
-      filter,
-      notifications,
-    ]);
-
-  const markAllAsRead = () => {
-    if (!student) {
-      return;
-    }
-
-    markAllNotificationsAsRead(
-      student.id,
-    );
-
-    loadNotifications(
-      student.id,
-    );
+  const confirmDelete = () => {
+    if (deleteTarget === null || change.isPending) return;
+    const id = deleteTarget === "all" ? undefined : deleteTarget;
+    change.mutate({ action: "delete", id }, { onSuccess: () => setDeleteTarget(null) });
   };
 
-  const markAsRead = (
-    id: string,
-  ) => {
-    if (!student) {
-      return;
-    }
-
-    markNotificationAsRead(id);
-
-    loadNotifications(
-      student.id,
-    );
+  const openNotification = (notification: NotificationItem) => {
+    if (!notification.read) change.mutate({ action: "read", id: notification.id });
+    if (notification.destination) void navigate({ to: notification.destination });
   };
-
-  const handleRemoveNotification = (
-    id: string,
-  ) => {
-    if (!student) {
-      return;
-    }
-
-    removeNotification(id);
-
-    loadNotifications(
-      student.id,
-    );
-  };
-
-  const handleRemoveAllNotifications =
-    () => {
-      if (!student) {
-        return;
-      }
-
-      removeAllStudentNotifications(
-        student.id,
-      );
-
-      loadNotifications(
-        student.id,
-      );
-
-      setDeleteAllConfirmationOpen(
-        false,
-      );
-    };
-
-  if (!ready || !student) {
-    return null;
-  }
 
   return (
     <PatientLayout
@@ -251,6 +99,7 @@ function NotificationsPage() {
         handleNavigation
       }
     >
+      <Toaster richColors position="top-center" />
       <div className="mx-auto max-w-7xl">
         {/* CABEÇALHO */}
         <div className="flex flex-wrap items-end justify-between gap-5">
@@ -279,9 +128,8 @@ function NotificationsPage() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={
-                  markAllAsRead
-                }
+                disabled={change.isPending}
+                onClick={() => change.mutate({ action: "read" })}
                 className="bg-white"
               >
                 <CheckCheck className="mr-2 h-4 w-4" />
@@ -297,9 +145,7 @@ function NotificationsPage() {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  setDeleteAllConfirmationOpen(
-                    true,
-                  )
+                  setDeleteTarget("all")
                 }
                 className="border-red-200 bg-white text-red-600 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
               >
@@ -415,7 +261,9 @@ function NotificationsPage() {
             </p>
           </div>
 
-          {filteredNotifications.length ===
+          <SchedulingFeedback query={list} />
+          <SchedulingFeedback query={unread} />
+          {list.isSuccess && (filteredNotifications.length ===
           0 ? (
             <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
@@ -446,26 +294,20 @@ function NotificationsPage() {
                     notification={
                       notification
                     }
-                    onRead={() =>
-                      markAsRead(
-                        notification.id,
-                      )
-                    }
-                    onRemove={() =>
-                      handleRemoveNotification(
-                        notification.id,
-                      )
-                    }
+                    onRead={() => change.mutate({ action: "read", id: notification.id })}
+                    onRemove={() => setDeleteTarget(notification.id)}
+                    onOpen={() => openNotification(notification)}
+                    pending={change.isPending}
                   />
                 ),
               )}
             </div>
-          )}
+          ))}
         </Card>
       </div>
 
       {/* MODAL EXCLUIR TODAS */}
-      {deleteAllConfirmationOpen && (
+      {deleteTarget !== null && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50">
@@ -473,16 +315,12 @@ function NotificationsPage() {
             </div>
 
             <h2 className="mt-4 text-xl font-bold text-slate-950">
-              Excluir todas as
-              notificações?
+              {deleteTarget === "all" ? "Excluir todas as notificações?" : "Excluir notificação?"}
             </h2>
 
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              Todas as suas
-              notificações serão
-              removidas. Essa ação
-              não poderá ser
-              desfeita.
+              {deleteTarget === "all" ? "Todas as suas notificações serão removidas." : "Esta notificação será removida."}
+              {" "}Essa ação não poderá ser desfeita.
             </p>
 
             <div className="mt-6 flex justify-end gap-3">
@@ -490,9 +328,7 @@ function NotificationsPage() {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  setDeleteAllConfirmationOpen(
-                    false,
-                  )
+                  setDeleteTarget(null)
                 }
               >
                 Voltar
@@ -500,14 +336,13 @@ function NotificationsPage() {
 
               <Button
                 type="button"
-                onClick={
-                  handleRemoveAllNotifications
-                }
+                disabled={change.isPending}
+                onClick={confirmDelete}
                 className="bg-red-600 text-white hover:bg-red-700"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
 
-                Excluir todas
+                {deleteTarget === "all" ? "Excluir todas" : "Excluir"}
               </Button>
             </div>
           </div>
@@ -521,10 +356,14 @@ function NotificationRow({
   notification,
   onRead,
   onRemove,
+  onOpen,
+  pending,
 }: {
   notification: NotificationItem;
   onRead: () => void;
   onRemove: () => void;
+  onOpen: () => void;
+  pending: boolean;
 }) {
   const config = {
     confirmacao: {
@@ -580,11 +419,11 @@ function NotificationRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
-          <p className="font-semibold text-slate-950">
-            {
-              notification.title
-            }
-          </p>
+          {notification.destination ? (
+            <button type="button" onClick={onOpen} className="text-left font-semibold text-slate-950 hover:underline">
+              {notification.title}
+            </button>
+          ) : <p className="font-semibold text-slate-950">{notification.title}</p>}
 
           {!notification.read && (
             <span className="h-2 w-2 rounded-full bg-blue-500" />
@@ -608,6 +447,7 @@ function NotificationRow({
             type="button"
             variant="ghost"
             size="sm"
+            disabled={pending}
             onClick={onRead}
             className="text-slate-600"
           >
@@ -621,6 +461,7 @@ function NotificationRow({
           type="button"
           variant="ghost"
           size="icon"
+          disabled={pending}
           onClick={onRemove}
           className="text-slate-400 hover:text-red-600"
           aria-label="Excluir notificação"

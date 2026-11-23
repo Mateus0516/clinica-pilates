@@ -111,6 +111,7 @@ public class SecurityConfig {
                     .requestMatchers("/aulas", "/aulas/**", "/agendamentos", "/agendamentos/**",
                             "/sessoes", "/sessoes/**").hasRole("PACIENTE")
                     .requestMatchers("/planos", "/planos/**", "/pagamentos", "/pagamentos/**").hasRole("PACIENTE")
+                    .requestMatchers("/notificacoes", "/notificacoes/**").hasRole("PACIENTE")
                     .anyRequest().authenticated()
             )
 

@@ -1,279 +1,72 @@
-export type NotificationType =
-  | "confirmacao"
-  | "aula"
-  | "lembrete"
-  | "cancelamento";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
+import { toast } from "sonner";
+import { ApiError } from "./api";
+import { authenticatedRequest, getPatient } from "./auth";
+import { schedulingError, schedulingKey, useSchedulingQuery } from "./scheduling";
 
-export type NotificationItem = {
-  id: string;
-  studentId: string;
-  title: string;
-  description: string;
-  time: string;
-  type: NotificationType;
-  read: boolean;
-  createdAt: string;
+const destinations = ["/aulas", "/historico", "/gerenciar-pagamentos", "/detalhes-plano", "/meus-planos"] as const;
 
-  /*
-   * Identificador opcional da aula.
-   *
-   * Usado principalmente nos
-   * lembretes para impedir que
-   * a mesma aula gere várias
-   * notificações.
-   */
-  bookingId?: string;
+type NotificationDto = {
+  id: number;
+  titulo: string;
+  mensagem: string;
+  criadaEm: string;
+  tipo: "confirmacao" | "aula" | "lembrete" | "cancelamento";
+  lida: boolean;
+  destino: string | null;
 };
 
-const NOTIFICATIONS_KEY =
-  "timely_notifications";
+const timeFormat = new Intl.DateTimeFormat("pt-BR", {
+  dateStyle: "short", timeStyle: "short", timeZone: "America/Sao_Paulo",
+});
 
-/*
- * Retorna todas as notificações.
- */
-export function getNotifications(): NotificationItem[] {
-  const storedNotifications =
-    localStorage.getItem(
-      NOTIFICATIONS_KEY,
-    );
-
-  if (!storedNotifications) {
-    return [];
-  }
-
-  try {
-    return JSON.parse(
-      storedNotifications,
-    ) as NotificationItem[];
-  } catch {
-    return [];
-  }
-}
-
-/*
- * Salva todas as notificações.
- *
- * Também dispara um evento para
- * atualizar o sino e outras telas.
- */
-export function saveNotifications(
-  notifications: NotificationItem[],
-) {
-  localStorage.setItem(
-    NOTIFICATIONS_KEY,
-    JSON.stringify(notifications),
-  );
-
-  window.dispatchEvent(
-    new Event(
-      "timely-notifications-updated",
-    ),
-  );
-}
-
-/*
- * Adiciona uma nova notificação.
- */
-export function addNotification(
-  notification: Omit<
-    NotificationItem,
-    "id" | "createdAt" | "read"
-  >,
-) {
-  const notifications =
-    getNotifications();
-
-  const newNotification: NotificationItem = {
-    ...notification,
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    read: false,
+function notification(dto: NotificationDto) {
+  return {
+    id: dto.id,
+    title: dto.titulo,
+    description: dto.mensagem,
+    time: timeFormat.format(new Date(dto.criadaEm)),
+    type: dto.tipo,
+    read: dto.lida,
+    destination: destinations.find((path) => path === dto.destino),
   };
-
-  saveNotifications([
-    newNotification,
-    ...notifications,
-  ]);
-
-  return newNotification;
 }
 
-/*
- * Verifica se já existe uma
- * notificação de determinado tipo
- * relacionada a uma aula.
- */
-export function hasBookingNotification(
-  studentId: string,
-  bookingId: string,
-  type: NotificationType,
-) {
-  return getNotifications().some(
-    (notification) =>
-      notification.studentId ===
-        studentId &&
-      notification.bookingId ===
-        bookingId &&
-      notification.type === type,
-  );
+export type NotificationItem = ReturnType<typeof notification>;
+
+export function useNotifications() {
+  const query = useSchedulingQuery<NotificationDto[]>(["notifications", "list"], "/notificacoes", 30_000);
+  const data = useMemo(() => query.data?.map(notification), [query.data]);
+  return { ...query, data };
 }
 
-/*
- * Adiciona uma notificação relacionada
- * a uma aula apenas se ela ainda
- * não existir.
- *
- * Evita lembretes duplicados.
- */
-export function addBookingNotificationOnce(
-  notification: Omit<
-    NotificationItem,
-    "id" | "createdAt" | "read"
-  > & {
-    bookingId: string;
-  },
-) {
-  const alreadyExists =
-    hasBookingNotification(
-      notification.studentId,
-      notification.bookingId,
-      notification.type,
-    );
-
-  if (alreadyExists) {
-    return null;
-  }
-
-  return addNotification(
-    notification,
-  );
+export function useUnreadNotifications() {
+  return useSchedulingQuery<{ total: number }>(["notifications", "unread"], "/notificacoes/nao-lidas", 30_000);
 }
 
-/*
- * Retorna somente as notificações
- * do paciente informado.
- */
-export function getStudentNotifications(
-  studentId: string,
-) {
-  return getNotifications()
-    .filter(
-      (notification) =>
-        notification.studentId ===
-        studentId,
-    )
-    .sort(
-      (
-        notificationA,
-        notificationB,
-      ) =>
-        new Date(
-          notificationB.createdAt,
-        ).getTime() -
-        new Date(
-          notificationA.createdAt,
-        ).getTime(),
-    );
-}
+type Change = { action: "read" | "delete"; id?: number };
 
-/*
- * Marca uma notificação como lida.
- */
-export function markNotificationAsRead(
-  notificationId: string,
-) {
-  const updatedNotifications =
-    getNotifications().map(
-      (notification) =>
-        notification.id ===
-        notificationId
-          ? {
-              ...notification,
-              read: true,
-            }
-          : notification,
-    );
-
-  saveNotifications(
-    updatedNotifications,
-  );
-}
-
-/*
- * Marca todas as notificações
- * do paciente como lidas.
- */
-export function markAllNotificationsAsRead(
-  studentId: string,
-) {
-  const updatedNotifications =
-    getNotifications().map(
-      (notification) =>
-        notification.studentId ===
-        studentId
-          ? {
-              ...notification,
-              read: true,
-            }
-          : notification,
-    );
-
-  saveNotifications(
-    updatedNotifications,
-  );
-}
-
-/*
- * Exclui apenas uma notificação.
- */
-export function removeNotification(
-  notificationId: string,
-) {
-  const updatedNotifications =
-    getNotifications().filter(
-      (notification) =>
-        notification.id !==
-        notificationId,
-    );
-
-  saveNotifications(
-    updatedNotifications,
-  );
-}
-
-/*
- * Exclui todas as notificações
- * somente do paciente informado.
- *
- * Notificações de outros pacientes
- * permanecem salvas.
- */
-export function removeAllStudentNotifications(
-  studentId: string,
-) {
-  const updatedNotifications =
-    getNotifications().filter(
-      (notification) =>
-        notification.studentId !==
-        studentId,
-    );
-
-  saveNotifications(
-    updatedNotifications,
-  );
-}
-
-/*
- * Retorna a quantidade de
- * notificações não lidas.
- */
-export function getUnreadNotificationCount(
-  studentId: string,
-) {
-  return getStudentNotifications(
-    studentId,
-  ).filter(
-    (notification) =>
-      !notification.read,
-  ).length;
+export function useNotificationChange() {
+  const client = useQueryClient();
+  const patient = getPatient()?.id;
+  return useMutation({
+    mutationKey: [...schedulingKey, patient, "notifications"],
+    scope: { id: `patient-notifications:${patient}` },
+    mutationFn: ({ action, id }: Change) => {
+      if (patient === undefined || patient !== getPatient()?.id) throw new ApiError(401);
+      const path = id === undefined ? "/notificacoes" : `/notificacoes/${id}` as const;
+      return action === "read"
+        ? authenticatedRequest<void>(`${path}/leitura`, { method: "PUT" })
+        : authenticatedRequest<void>(path, { method: "DELETE" });
+    },
+    onError: (error) => {
+      if (patient === getPatient()?.id) toast.error(schedulingError(error));
+    },
+    onSettled: () => {
+      if (patient !== undefined && patient === getPatient()?.id) {
+        return client.invalidateQueries({ queryKey: [...schedulingKey, patient, "notifications"] });
+      }
+    },
+  });
 }

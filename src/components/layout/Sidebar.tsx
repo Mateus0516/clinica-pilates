@@ -1,3 +1,4 @@
+import { useUnreadNotifications } from "@/lib/notification-store";
 import {
   Bell,
   CalendarDays,
@@ -110,6 +111,7 @@ export function Sidebar({
   };
 
   const activeSection = getActiveSection();
+  const unread = useUnreadNotifications().data?.total ?? 0;
 
   return (
     <aside
@@ -236,11 +238,21 @@ export function Sidebar({
                   : "text-muted-foreground hover:bg-muted hover:text-foreground")
               }
             >
-              <Icon className="h-5 w-5 shrink-0" />
+              <span className="relative shrink-0">
+                <Icon className="h-5 w-5" />
+                {collapsed && item.section === "notificacoes" && unread > 0 && (
+                  <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-red-500" aria-label={`${unread} não lidas`} />
+                )}
+              </span>
 
               {!collapsed && (
                 <span className="truncate">
                   {item.label}
+                </span>
+              )}
+              {!collapsed && item.section === "notificacoes" && unread > 0 && (
+                <span className="ml-auto rounded-full bg-red-500 px-1.5 text-xs font-bold text-white" aria-label={`${unread} não lidas`}>
+                  {unread > 99 ? "99+" : unread}
                 </span>
               )}
             </button>

@@ -1,6 +1,8 @@
 package com.clinica.backend.agendamento;
 
 import com.clinica.backend.model.Usuario;
+import com.clinica.backend.notificacao.Notificacao.Evento;
+import com.clinica.backend.notificacao.NotificacaoService;
 import com.clinica.backend.planos.CreditosPlanoService;
 import com.clinica.backend.planos.ContratacaoPlano;
 import com.clinica.backend.repository.UsuarioRepository;
@@ -39,9 +41,10 @@ class AgendamentoService {
     private final SaldoSessoesService saldos;
     private final CreditosPlanoService creditosPlano;
     private final Clock relogio;
+    private final NotificacaoService notificacoes;
 
     AgendamentoService(UsuarioRepository usuarios, InstrutorRepository instrutores, AulaRepository aulas,
-                       AgendamentoRepository agendamentos, SaldoSessoesService saldos, CreditosPlanoService creditosPlano, Clock relogio) {
+                       AgendamentoRepository agendamentos, SaldoSessoesService saldos, CreditosPlanoService creditosPlano, Clock relogio, NotificacaoService notificacoes) {
         this.usuarios = usuarios;
         this.instrutores = instrutores;
         this.aulas = aulas;
@@ -49,6 +52,7 @@ class AgendamentoService {
         this.saldos = saldos;
         this.creditosPlano = creditosPlano;
         this.relogio = relogio;
+        this.notificacoes = notificacoes;
     }
 
     public List<AgendamentoDto.Disponibilidade> consultarAulas(LocalDate inicio, LocalDate fim) {
@@ -102,7 +106,9 @@ class AgendamentoService {
 
         ContratacaoPlano origem = creditosPlano.consumir(pacienteId, saldo.getDisponiveis());
         saldo.descontar();
-        return resposta(agendamentos.save(new Agendamento(aula, paciente, agora, origem)), agora);
+        Agendamento reserva = agendamentos.save(new Agendamento(aula, paciente, agora, origem));
+        notificacoes.registrar(paciente, Evento.AGENDAMENTO, reserva.getId(), "Aula agendada", descreverAula(aula), agora);
+        return resposta(reserva, agora);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -119,6 +125,8 @@ class AgendamentoService {
             creditosPlano.devolver(reserva.getContratacaoCredito());
         }
         reserva.cancelar(agora, devolver);
+        String sessao = devolver ? "A sessão foi devolvida." : "A sessão não foi devolvida.";
+        notificacoes.registrar(paciente, Evento.CANCELAMENTO, id, "Aula cancelada", descreverAula(aula) + " " + sessao, agora);
         return resposta(reserva, agora);
     }
 
@@ -145,6 +153,12 @@ class AgendamentoService {
 
     public AgendamentoDto.Saldo consultarSaldo(Long pacienteId) {
         return new AgendamentoDto.Saldo(saldos.consultar(pacienteId));
+    }
+
+    static String descreverAula(Aula aula) {
+        return "Aula de %s às %s com Prof. %s.".formatted(
+                aula.getData().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                aula.getHorario(), aula.getInstrutor().getNome());
     }
 
     private Map<Horario, Long> ocupacao(LocalDate inicio, LocalDate fim) {

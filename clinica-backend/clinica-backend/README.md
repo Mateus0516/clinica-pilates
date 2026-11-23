@@ -180,3 +180,37 @@ depois o crédito da contratação mais antiga disponível. Uma devolução de
 agendamento retorna ao mesmo crédito. Isso permite exibir o progresso real de
 cada contratação sem misturar o saldo geral com as sessões do plano atual.
 Cancelamento comercial e estorno não fazem parte do fluxo.
+
+## Notificações internas
+
+As rotas exigem JWT de paciente. O destinatário sempre vem da identidade
+autenticada. Não existe rota pública de criação.
+
+| Método | Rota | Operação |
+|---|---|---|
+| GET | `/notificacoes` | Lista a caixa do paciente |
+| GET | `/notificacoes/nao-lidas` | Conta os itens não lidos |
+| PUT | `/notificacoes/{id}/leitura` | Marca um item como lido |
+| PUT | `/notificacoes/leitura` | Marca todos como lidos |
+| DELETE | `/notificacoes/{id}` | Remove um item da caixa |
+| DELETE | `/notificacoes` | Remove todos os itens da caixa |
+
+Reserva, cancelamento com resultado da devolução, pagamento simulado, ativação
+e renovação gravam os avisos na mesma transação do evento de origem. A tabela
+`notificacoes` guarda o destinatário, evento, referência, conteúdo e horários
+de criação, leitura e exclusão. A chave única de destinatário, evento e referência
+continua valendo após uma exclusão lógica e após reiniciar a aplicação.
+
+As rotinas consultam o MySQL a cada cinco minutos no fuso `America/Sao_Paulo`.
+O aviso de aula entra na janela de 24 horas anteriores ao início e só é gerado
+enquanto a reserva estiver ativa. Os avisos de plano tornam-se elegíveis às 9h,
+três dias corridos antes do vencimento e novamente na data do vencimento.
+Após indisponibilidade, a rotina retoma avisos ainda aplicáveis. O lembrete
+prévio é descartado quando a vigência termina. O aviso de vencimento pode ser
+recuperado enquanto o contrato vencido for a última contratação ativada do
+paciente. O estado é conferido novamente sob bloqueio antes de gravar o aviso.
+Em testes, use `timely.notificacoes.cron=-` para desativar a execução automática.
+
+As notificações antigas do navegador ficam preservadas em sua chave local.
+A caixa integrada usa somente os registros verificados pelo backend. As
+preferências de comunicação continuam separadas das notificações internas.
