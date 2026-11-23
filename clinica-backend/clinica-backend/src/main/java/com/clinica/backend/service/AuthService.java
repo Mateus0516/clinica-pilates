@@ -39,19 +39,21 @@ public class AuthService {
             String telefone,
             LocalDate dataNascimento
     ) {
-        if (usuarioRepository.findByEmail(email).isPresent()) {
+        DadosPaciente dados = DadosPaciente.validar(nome, email, telefone, dataNascimento);
+        if (senha == null || senha.length() < 6 || senha.getBytes(java.nio.charset.StandardCharsets.UTF_8).length > 72) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Informe uma senha com pelo menos 6 caracteres e até 72 bytes.");
+        }
+        if (usuarioRepository.findByEmail(dados.email()).isPresent()) {
             throw new DuplicateKeyException("E-mail já cadastrado");
         }
 
         Usuario usuario = new Usuario();
 
-        usuario.setNome(nome);
-        usuario.setEmail(email);
+        dados.aplicar(usuario);
         usuario.setSenhaHash(
                 passwordEncoder.encode(senha)
         );
-        usuario.setTelefone(telefone);
-        usuario.setDataNascimento(dataNascimento);
         usuario.setPerfil("PACIENTE");
         usuario.iniciarSaldoPorPlano();
 
@@ -62,8 +64,11 @@ public class AuthService {
             String email,
             String senha
     ) {
+        if (email == null || email.isBlank() || senha == null || senha.isEmpty()) {
+            throw new BadCredentialsException("Credenciais inválidas");
+        }
         Usuario usuario = usuarioRepository
-                .findByEmail(email)
+                .findByEmail(email.strip().toLowerCase(java.util.Locale.ROOT))
                 .orElseThrow(
                         () -> new BadCredentialsException(
                                 "Credenciais inválidas"
@@ -121,16 +126,14 @@ public class AuthService {
         Usuario usuario = usuarioRepository
                 .bloquearPorId(id)
                 .orElseThrow(
-                        () -> new RuntimeException(
-                                "Usuário não encontrado"
+                        () -> new org.springframework.web.server.ResponseStatusException(
+                                org.springframework.http.HttpStatus.NOT_FOUND, "Usuário não encontrado"
                         )
                 );
 
         if (!usuario.getEmail().equals(email)
                 && usuarioRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException(
-                    "E-mail já cadastrado"
-            );
+            throw new DuplicateKeyException("E-mail já cadastrado");
         }
 
         usuario.setNome(nome);
@@ -143,8 +146,8 @@ public class AuthService {
 
     public void deletarUsuario(Long id) {
         if (!usuarioRepository.existsById(id)) {
-            throw new RuntimeException(
-                    "Usuário não encontrado"
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Usuário não encontrado"
             );
         }
 

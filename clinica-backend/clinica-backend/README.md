@@ -1,52 +1,35 @@
-# Clinica Backend
+# Timely API
 
-Backend Spring Boot para login/cadastro de alunos da clínica.
+Backend Spring Boot da área do paciente, com JWT, MySQL 8 e OpenAPI.
+Veja [execução, variáveis de ambiente, diagramas e limitações](../../README.md).
 
-## Antes de rodar
+## Executar e autenticar
 
-1. Crie o banco no MySQL:
+Use Java 17 e Maven 3.9. Exporte `DB_PASSWORD` e `JWT_SECRET`, configure
+`DB_URL` e `DB_USER` se necessário e execute `mvn spring-boot:run`.
+A API usa `8080`. O MySQL no Compose é publicado em `127.0.0.1:3307`.
+O catálogo de desenvolvimento entra por `sql/catalogo-dev.sql`.
+Para testes, use um esquema MySQL 8 novo e isolado e execute `mvn test`
+com `TIMELY_NOTIFICACOES_CRON=-`.
 
-```sql
-CREATE DATABASE clinica_db;
-```
+Swagger UI em `/swagger-ui/index.html` e OpenAPI em `/v3/api-docs`.
+Faça login com uma conta de teste, clique em **Authorize** e informe apenas
+o JWT. Erros de domínio trazem `erro`; 401 e 403 podem vir do filtro
+Spring Security. CORS permite apenas as origens locais listadas em
+`SecurityConfig`.
 
-2. Abra `src/main/resources/application.properties`
+| Método | Rota | Acesso |
+|---|---|---|
+| POST | `/auth/register` | Público |
+| POST | `/auth/login` | Público |
+| GET | `/auth/me` | Autenticado |
+| PUT | `/auth/me`, `/auth/me/preferencias`, `/auth/me/senha` | Paciente |
+| GET | `/auth/usuarios` | Administrador |
+| PUT / DELETE | `/auth/usuarios/{id}` | Administrador |
 
-Troque:
-
-```properties
-spring.datasource.password=SUA_SENHA_DO_MYSQL
-```
-
-pela sua senha real do MySQL.
-
-## Rodar
-
-```bash
-mvn spring-boot:run
-```
-
-## Swagger
-
-Depois de rodar, abra:
-
-```text
-http://localhost:8080/swagger-ui/index.html
-```
-
-## Rotas
-
-Cadastro:
-
-```http
-POST /auth/register
-```
-
-Login:
-
-```http
-POST /auth/login
-```
+As senhas usam BCrypt. JWTs têm validade de 24 horas e incluem ID imutável e
+versão da credencial. A troca de senha invalida os tokens anteriores. O
+frontend valida a sessão e descarta caches protegidos ao sair.
 
 ## Aulas, agendamentos e sessões
 

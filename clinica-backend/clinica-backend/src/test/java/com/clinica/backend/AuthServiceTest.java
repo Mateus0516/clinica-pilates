@@ -170,8 +170,8 @@ public class AuthServiceTest {
                 usuario.getId()
         );
 
-        RuntimeException erro = assertThrows(
-                RuntimeException.class,
+        org.springframework.web.server.ResponseStatusException erro = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
                 () -> authService.deletarUsuario(
                         usuario.getId()
                 )
@@ -179,7 +179,7 @@ public class AuthServiceTest {
 
         assertEquals(
                 "Usuário não encontrado",
-                erro.getMessage()
+                erro.getReason()
         );
     }
 }

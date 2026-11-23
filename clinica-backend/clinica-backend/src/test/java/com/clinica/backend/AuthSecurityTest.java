@@ -155,6 +155,32 @@ class AuthSecurityTest {
                 .andExpect(status().isUnauthorized());
     }
 
+    @Test
+    void cadastroRejeitaDadosInvalidosMesmoSemOFormulario() throws Exception {
+        for (String corpo : java.util.List.of(
+                "{}",
+                """
+                {"nome":"Paciente Teste","email":"invalido","senha":"Senha123","telefone":"61999999999","dataNascimento":"2000-01-01"}
+                """,
+                """
+                {"nome":"Paciente Teste","email":"paciente@example.test","senha":"Senha123","telefone":"123","dataNascimento":"2000-01-01"}
+                """,
+                """
+                {"nome":"Paciente Teste","email":"paciente@example.test","senha":"Senha123","telefone":"61999999999","dataNascimento":"9999-01-01"}
+                """)) {
+            mvc.perform(post("/auth/register").contentType(MediaType.APPLICATION_JSON).content(corpo))
+                    .andExpect(status().isBadRequest()).andExpect(jsonPath("$.erro").isString());
+        }
+        org.mockito.Mockito.verifyNoInteractions(repository);
+    }
+
+    @Test
+    void loginIncompletoMantemRespostaDeCredenciaisInvalidas() throws Exception {
+        mvc.perform(post("/auth/login").contentType(MediaType.APPLICATION_JSON).content("{}"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.erro").value("Credenciais inválidas"));
+    }
+
     private String tokenFor(String role) {
         Usuario usuario = new Usuario();
         ReflectionTestUtils.setField(usuario, "id", 1L);

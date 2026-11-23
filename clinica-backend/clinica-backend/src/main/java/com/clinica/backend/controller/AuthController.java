@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.Map;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.ResponseEntity;
@@ -67,6 +70,8 @@ public class AuthController {
         summary = "Login do usuário",
         description = "Autentica um usuário pelo email e senha e retorna um token JWT."
     )
+    @ApiResponse(responseCode = "200", description = "Sessão autenticada",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = LoginResponse.class)))
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(
             @RequestBody LoginRequest request
@@ -133,6 +138,7 @@ public class AuthController {
         summary = "Listar usuários",
         description = "Lista todos os usuários cadastrados. Acesso exclusivo de administradores."
     )
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/usuarios")
     public ResponseEntity<List<Usuario>> listarUsuarios() {
         List<Usuario> usuarios =
@@ -145,6 +151,7 @@ public class AuthController {
         summary = "Atualizar usuário",
         description = "Atualiza os dados de um usuário pelo ID. Acesso exclusivo de administradores."
     )
+    @SecurityRequirement(name = "bearerAuth")
     @PutMapping("/usuarios/{id}")
     public ResponseEntity<Usuario> atualizarUsuario(
             @PathVariable Long id,
@@ -166,6 +173,7 @@ public class AuthController {
         summary = "Deletar usuário",
         description = "Remove um usuário pelo ID. Acesso exclusivo de administradores."
     )
+    @SecurityRequirement(name = "bearerAuth")
     @DeleteMapping("/usuarios/{id}")
     public ResponseEntity<Void> deletarUsuario(
             @PathVariable Long id
@@ -193,6 +201,11 @@ public class AuthController {
             String senha,
             String telefone,
             LocalDate dataNascimento
+    ) {}
+
+    public record LoginResponse(
+            String mensagem, String token, String tipo, Long id, String nome, String email,
+            String telefone, LocalDate dataNascimento, String perfil
     ) {}
 
     public record LoginRequest(

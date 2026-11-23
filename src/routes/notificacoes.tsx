@@ -403,7 +403,7 @@ function NotificationRow({
 
   return (
     <div
-      className={`flex items-start gap-4 border-b border-slate-100 px-6 py-5 transition last:border-b-0 ${
+      className={`flex items-start gap-4 max-sm:flex-wrap border-b border-slate-100 px-6 py-5 transition last:border-b-0 ${
         notification.read
           ? "bg-white"
           : "bg-slate-50"
@@ -417,7 +417,7 @@ function NotificationRow({
         />
       </div>
 
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 break-words">
         <div className="flex flex-wrap items-center gap-2">
           {notification.destination ? (
             <button type="button" onClick={onOpen} className="text-left font-semibold text-slate-950 hover:underline">

@@ -1,249 +1,80 @@
+# Timely
 
-# 🏥 Sistema de Gestão e Autoatendimento para Clínicas
+Sistema de gestão e autoatendimento para uma clínica de Pilates. A área do
+paciente reúne cadastro e login, Dashboard, Agenda, Minhas Aulas, Histórico,
+Perfil, planos, pagamentos simulados, notificações internas e Central de Ajuda.
 
-Sistema desenvolvido para gerenciamento de pacientes, autenticação de usuários e suporte ao autoatendimento em clínicas.
+## Arquitetura
 
-O projeto foi desenvolvido como atividade acadêmica, aplicando conceitos de **Engenharia de Software, Arquitetura em Camadas, APIs REST, Banco de Dados, Docker e Documentação de Software**.
+O frontend React 19 e TypeScript usa Vite, TanStack Router, TanStack Query e
+Tailwind. A API REST usa Java 17, Spring Boot 3, Spring Security, BCrypt,
+JWT, Spring Data JPA e Hibernate. O MySQL 8 roda em Docker. Swagger UI
+publica o contrato OpenAPI, e a suíte usa JUnit e Spring Boot Test.
 
----
-
-## 📌 Funcionalidades
-
-- ✅ Cadastro de pacientes
-- ✅ Login com autenticação segura utilizando BCrypt
-- ✅ Consulta de usuários cadastrados
-- ✅ Atualização de dados cadastrais
-- ✅ Exclusão de usuários
-- ✅ Integração Frontend + Backend
-- ✅ API REST documentada com Swagger
-- ✅ Persistência de dados em MySQL
-- ✅ Banco de dados executando em container Docker
-- ✅ Tratamento de erros e exceções
-- ✅ Testes automatizados
-
----
-
-## 🛠 Tecnologias Utilizadas
-
-### Frontend
-
-- React
-- TypeScript
-- Vite
-- TailwindCSS
-
-### Backend
-
-- Java 17
-- Spring Boot
-- Spring Data JPA
-- Hibernate
-- Maven
-
-### Banco de Dados
-
-- MySQL
-- Docker
-
-### Documentação
-
-- Swagger OpenAPI
-
-### Testes
-
-- JUnit 5
-- Spring Boot Test
-
----
-
-## 🏗 Arquitetura do Projeto
-
-O backend foi desenvolvido utilizando **arquitetura em camadas**, composta por:
-
-- **Controller:** gerenciamento das requisições HTTP e dos endpoints da API.
-- **Service:** implementação das regras de negócio.
-- **Repository:** comunicação com o banco de dados.
-- **Model:** representação das entidades do sistema.
-- **Config:** configurações gerais da aplicação.
-
-Essa organização facilita a manutenção, a escalabilidade e a reutilização do código.
-
----
-
-## 📂 Estrutura do Projeto
-
-```text
-clinica-pilates/
-│
-├── src/                        # Frontend React
-│
-├── clinica-backend/
-│   ├── src/main/java/
-│   │   ├── controller/
-│   │   ├── service/
-│   │   ├── repository/
-│   │   ├── model/
-│   │   └── config/
-│   │
-│   ├── src/test/java/
-│   └── pom.xml
-│
-└── README.md
-```
-
-> **Observação:** o nome da pasta original foi mantido para preservar a compatibilidade com o repositório existente.
-
----
-
-## 🚀 Como Executar o Projeto
-
-### 1. Clonar o repositório
-
-```bash
-git clone https://github.com/Mateus0516/clinica-pilates.git
-```
-
-### 2. Entrar na pasta do projeto
-
-```bash
-cd clinica-pilates
-```
-
-### 3. Iniciar o Banco de Dados (Docker)
-
-Executar o container MySQL:
-
-```bash
-docker start clinica-mysql
-```
-
-Verificar os containers ativos:
-
-```bash
-docker ps
-```
-
-**Observação:** o container `clinica-mysql` deve estar previamente criado e configurado.
-
-### 4. Executar o Backend
-
-Em um terminal, execute:
-
-```bash
-cd clinica-backend/clinica-backend
-mvn spring-boot:run
-```
-
-O backend estará disponível em:
-
-```text
-http://localhost:8080
-```
-
-### 5. Executar o Frontend
-
-Abra outro terminal na pasta principal do projeto e execute:
-
-```bash
-npm install
-npm run dev
-```
-
-O frontend estará disponível em:
-
-```text
-http://localhost:8081
-```
-
-O frontend usa `http://localhost:8080` como endereço padrão da API. Para mudar o endereço, copie `.env.example` para `.env`, ajuste `VITE_API_URL` e reinicie o Vite.
-
----
-
-## 📘 Documentação da API — Swagger
-
-A documentação interativa da API pode ser acessada pelo endereço:
-
-http://localhost:8080/swagger-ui/index.html
-
-O Swagger permite visualizar os endpoints disponíveis, consultar os parâmetros das requisições e testar as operações da API.
-
----
-
-## 🗄 Banco de Dados
-
-O projeto utiliza MySQL para persistência dos dados, executado em um container Docker.
-
-| Configuração | Valor |
+| Caminho | Conteúdo |
 |---|---|
-| Banco de dados | MySQL |
-| Nome do banco | `clinica_db` |
-| Container | `clinica-mysql` |
-| Porta | `3307` |
-| ORM | JPA / Hibernate |
+| `src/routes` | Páginas e proteção de rotas |
+| `src/components` | Layout, formulários e componentes compartilhados |
+| `src/lib` | Cliente REST, sessão e consultas |
+| `clinica-backend/clinica-backend/src/main` | API, regras, entidades e configuração |
+| `clinica-backend/clinica-backend/src/test` | Testes de autenticação e dos módulos de paciente |
+| `clinica-backend/clinica-backend/sql` | Catálogo de desenvolvimento |
+| `docs` | Diagramas editáveis, auditoria e planejamento |
 
----
+## Execução local
 
-## 🔐 Principais Endpoints
+Pré-requisitos: Node.js 22.12 ou superior, npm, JDK 17, Maven 3.9 e Docker com
+Compose. Use ambientes e credenciais próprios para desenvolvimento.
 
-A API REST disponibiliza os seguintes endpoints:
+1. Defina `DB_PASSWORD` e `JWT_SECRET` no ambiente do terminal. Gere uma chave JWT
+   aleatória de pelo menos 32 bytes. O Compose usa `DB_PASSWORD` na criação
+   de um volume novo. Em um volume existente, configure a senha que já está
+   em vigor. Alterar a variável não altera a senha do MySQL já instalado.
+2. Na raiz, execute `docker compose up -d mysql`. A porta local é `3307`.
+3. Em `clinica-backend/clinica-backend`, execute `mvn spring-boot:run`. A API usa a porta `8080`.
+4. Depois que o esquema de **desenvolvimento** estiver criado, execute
+   `sql/catalogo-dev.sql` em `clinica_db` usando seu cliente MySQL.
+5. Na raiz, execute `npm ci` e `npm run dev`. Abra `http://localhost:8081`.
 
-| Método | Endpoint | Descrição |
-|---|---|---|
-| POST | `/auth/register` | Cadastrar usuário |
-| POST | `/auth/login` | Autenticar usuário |
-| GET | `/auth/me` | Consultar o perfil autenticado |
-| GET | `/auth/usuarios` | Listar usuários (administrador) |
-| PUT | `/auth/usuarios/{id}` | Atualizar usuário (administrador) |
-| DELETE | `/auth/usuarios/{id}` | Excluir usuário (administrador) |
+| Variável | Uso |
+|---|---|
+| `DB_PASSWORD` | Senha do MySQL local, obrigatória |
+| `DB_USER` | Usuário da conexão Spring, padrão local `root` |
+| `DB_URL` | Padrão `jdbc:mysql://localhost:3307/clinica_db` |
+| `JWT_SECRET` | Chave privada de assinatura JWT, obrigatória |
+| `VITE_API_URL` | URL da API, padrão `http://localhost:8080`. Veja `.env.example`. |
+| `TIMELY_NOTIFICACOES_CRON` | Agenda opcional das rotinas. Use `-` para desativar em testes. |
 
-### Segurança
+Use um terminal com as variáveis exportadas ao iniciar o Spring. A leitura do
+arquivo `.env` pelo Compose ou Vite não exporta valores para o Maven.
 
-O backend armazena senhas com **BCrypt**. O frontend mantém o JWT no `sessionStorage` da aba, envia o cabeçalho `Authorization: Bearer` nas chamadas autenticadas e valida o perfil em `/auth/me` antes de abrir as rotas privadas do paciente.
+## Swagger e testes
 
----
+Abra `http://localhost:8080/swagger-ui/index.html`. Faça login em
+`POST /auth/login` com uma conta de teste e use **Authorize** com o token
+Bearer. Confirme a autenticação em `GET /auth/me`. O JSON está em
+`/v3/api-docs`. A lista de rotas e as regras estão no [README do backend](clinica-backend/clinica-backend/README.md).
 
-## 🧪 Testes Automatizados
+- Backend: aponte `DB_URL`, `DB_USER` e `DB_PASSWORD` para um **esquema MySQL 8 isolado**, configure `JWT_SECRET`, desative a rotina de lembretes no ambiente de teste e execute `mvn test` na pasta do backend. Use um esquema novo por execução.
+- Frontend: execute `npx tsc --noEmit` e `npm run build` na raiz.
+- Verificação do diff: execute `git diff --check`.
 
-O projeto possui testes automatizados utilizando **JUnit 5** e **Spring Boot Test**.
+## Diagramas e planejamento
 
-Para executar os testes, acesse o diretório do backend e utilize:
+- [Casos de uso, classes, sequências e DER](docs/diagramas.md)
+- [Planejamento e cronograma verificável](docs/planejamento.md)
+- [Matriz acadêmica e auditoria](docs/auditoria-etapa-8.md)
+- [Especificação original no repositório](especificacao)
 
-```bash
-mvn test
-```
+## Limitações atuais
 
-### Resultado obtido
-
-```text
-Tests run: 5
-Failures: 0
-Errors: 0
-BUILD SUCCESS
-```
-
-Os cinco testes executados foram concluídos sem falhas ou erros.
-
----
-
-## 📋 Requisitos Atendidos
-
-- [x] Documento de Requisitos de Negócio (BRD)
-- [x] Documento de Especificação de Requisitos (ERS/SRS)
-- [x] Planejamento e Cronograma
-- [x] Diagramas UML
-- [x] API REST
-- [x] CRUD Completo
-- [x] Swagger Documentado
-- [x] Tratamento de Erros
-- [x] Testes Automatizados
-- [x] Banco de Dados com ORM (JPA/Hibernate)
-- [x] Docker
-- [x] Integração Frontend + Backend
-- [x] Arquitetura Organizada
-- [x] Clean Code
-- [x] README do Projeto
-
----
+Os pagamentos são exclusivamente simulados, sem integração financeira real.
+E-mail, WhatsApp e push externos e os contatos oficiais da clínica continuam
+pendentes. A intenção do paciente de comparecer não equivale à presença
+registrada pelo profissional. Indicadores de presença, faltas e frequência
+dependem dessa etapa. A área profissional e a administrativa ainda são
+parciais. A gestão administrativa de planos e instrutores fica para a fase
+seguinte, mediante autorização.
 
 ## 👨‍💻 Desenvolvido por
 

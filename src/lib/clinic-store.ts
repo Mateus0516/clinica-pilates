@@ -6,10 +6,7 @@ export type Student = {
   email: string;
   phone: string;
   birthDate: string;
-  sessionsRemaining: number;
 };
-
-type LocalStudent = Partial<Pick<Student, "sessionsRemaining">>;
 
 export const TIME_SLOTS = [
   "07:00",
@@ -25,40 +22,15 @@ export const TIME_SLOTS = [
   "19:00",
 ];
 
-function read<T>(
-  key: string,
-  fallback: T,
-): T {
-  if (
-    typeof window === "undefined"
-  ) {
-    return fallback;
-  }
-
-  try {
-    const value =
-      localStorage.getItem(key);
-
-    return value
-      ? (JSON.parse(value) as T)
-      : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
 export function getSession(): Student | null {
   const patient = getPatient();
   if (!patient) return null;
 
-  const local = read<LocalStudent>(`timely_patient_preferences:${patient.id}`, {});
   return {
     id: String(patient.id),
     name: patient.nome,
     email: patient.email,
     phone: patient.telefone ?? "",
     birthDate: patient.dataNascimento ?? "",
-    // Regra local preexistente até a integração de planos e sessões.
-    sessionsRemaining: local.sessionsRemaining ?? 8,
   };
 }

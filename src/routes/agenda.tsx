@@ -508,7 +508,7 @@ function AgendaPage() {
               <SchedulingFeedback query={appointments} />
               <SchedulingFeedback query={balance} />
               {slots.isSuccess && filteredSlots.length === 0 && (
-                <p className="text-sm text-slate-500">Nenhum horário encontrado para esta data e estes filtros.</p>
+                <p className="text-sm text-slate-500">{dateKey < todayKey ? "Os horários desta data já passaram." : "Nenhum horário encontrado para esta data e estes filtros."}</p>
               )}
               {filteredSlots.map(
                 (slot) => {

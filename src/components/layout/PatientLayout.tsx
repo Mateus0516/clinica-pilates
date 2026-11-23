@@ -1,5 +1,6 @@
 import { ReactNode, useState } from "react";
 
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Sidebar } from "@/components/layout/Sidebar";
 
 type PatientLayoutProps = {
@@ -21,17 +22,16 @@ export function PatientLayout({
   onLogout,
   onNavigate,
 }: PatientLayoutProps) {
-  const [sidebarCollapsed, setSidebarCollapsed] =
-    useState(false);
+  const mobile = useIsMobile();
+  const [collapsedPreference, setCollapsedPreference] = useState<boolean | null>(null);
+  const sidebarCollapsed = collapsedPreference ?? mobile;
 
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
         onToggle={() =>
-          setSidebarCollapsed(
-            (current) => !current,
-          )
+          setCollapsedPreference((current) => !(current ?? mobile))
         }
         onLogout={onLogout}
         onNavigate={onNavigate}

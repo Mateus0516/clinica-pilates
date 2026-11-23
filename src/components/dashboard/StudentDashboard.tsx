@@ -1,3 +1,4 @@
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useMemo, useState } from "react";
 
 import { useNavigate } from "@tanstack/react-router";
@@ -33,7 +34,9 @@ export function StudentDashboard({ student, onLogout }: StudentDashboardProps) {
 
   const [weekOffset, setWeekOffset] = useState(0);
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const mobile = useIsMobile();
+  const [collapsedPreference, setCollapsedPreference] = useState<boolean | null>(null);
+  const sidebarCollapsed = collapsedPreference ?? mobile;
 
   const today = clinicToday();
   const week = useMemo(() => clinicWeek(weekOffset, today), [weekOffset, today]);
@@ -124,7 +127,7 @@ export function StudentDashboard({ student, onLogout }: StudentDashboardProps) {
     <div className="flex min-h-screen bg-background">
       <Sidebar
         collapsed={sidebarCollapsed}
-        onToggle={() => setSidebarCollapsed((current) => !current)}
+        onToggle={() => setCollapsedPreference((current) => !(current ?? mobile))}
         onLogout={onLogout}
         onNavigate={handleNavigation}
       />

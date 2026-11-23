@@ -241,7 +241,7 @@ function HistoryPage() {
               </div>
             </div>
 
-            <div className="min-w-[260px] flex-1">
+            <div className="min-w-0 flex-1 sm:min-w-[260px]">
               <p className="mb-3 text-sm font-semibold text-slate-700">
                 Profissional
               </p>
@@ -428,7 +428,7 @@ function HistoryRow({
         <CalendarCheck2 className="h-6 w-6" />
       </div>
 
-      <div className="min-w-[200px] flex-1">
+      <div className="min-w-0 flex-1 break-words max-sm:basis-full sm:min-w-[200px]">
         <p className="font-bold text-slate-950">
           Atendimento
         </p>

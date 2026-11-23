@@ -5,10 +5,8 @@ import com.clinica.backend.repository.UsuarioRepository;
 import com.clinica.backend.service.JwtService.Identidade;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.Locale;
 import java.util.Objects;
-import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,10 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class PerfilService {
-    private static final Pattern EMAIL = Pattern.compile("^[^\\s@]+@[^\\s@.]+(?:\\.[^\\s@.]+)+$");
-    private static final Pattern TELEFONE = Pattern.compile("[0-9() .-]+");
-    private static final ZoneId FUSO_CLINICA = ZoneId.of("America/Sao_Paulo");
-
     private static final java.util.Set<String> ESTADOS = java.util.Set.of(
             "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG",
             "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO");
@@ -38,28 +32,12 @@ public class PerfilService {
 
     @Transactional
     public Usuario atualizar(Identidade identidade, String nome, String email, String telefone, LocalDate nascimento, Endereco endereco) {
-        nome = nome == null ? "" : nome.strip();
-        email = email == null ? "" : email.strip().toLowerCase(Locale.ROOT);
-        if (nome.length() < 3 || nome.length() > 80) throw invalido("Informe um nome entre 3 e 80 caracteres.");
-        if (email.length() > 120 || !EMAIL.matcher(email).matches()) throw invalido("Informe um e-mail válido.");
-        if (telefone == null || telefone.length() > 30 || !TELEFONE.matcher(telefone).matches()) {
-            throw invalido("Informe um telefone válido com DDD.");
-        }
-        String digitos = telefone.replaceAll("[^0-9]", "");
-        if (digitos.length() < 10 || digitos.length() > 11) throw invalido("Informe um telefone válido com DDD.");
-        if (nascimento == null || nascimento.isBefore(LocalDate.of(1900, 1, 1))
-                || nascimento.isAfter(LocalDate.now(FUSO_CLINICA))) {
-            throw invalido("Informe uma data de nascimento válida.");
-        }
-
+        DadosPaciente dados = DadosPaciente.validar(nome, email, telefone, nascimento);
         Usuario paciente = bloquearPaciente(identidade);
-        if (usuarios.existsByEmailIgnoreCaseAndIdNot(email, paciente.getId())) {
+        if (usuarios.existsByEmailIgnoreCaseAndIdNot(dados.email(), paciente.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "E-mail já cadastrado.");
         }
-        paciente.setNome(nome);
-        paciente.setEmail(email);
-        paciente.setTelefone(digitos);
-        paciente.setDataNascimento(nascimento);
+        dados.aplicar(paciente);
         if (endereco != null) atualizarEndereco(paciente, endereco);
         return paciente;
     }
