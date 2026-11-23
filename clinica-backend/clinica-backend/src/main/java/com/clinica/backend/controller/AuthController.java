@@ -51,8 +51,6 @@ public class AuthController {
                 request.dataNascimento()
         );
 
-        usuario.setSenhaHash(null);
-
         return ResponseEntity.ok(usuario);
     }
 
@@ -114,10 +112,6 @@ public class AuthController {
         List<Usuario> usuarios =
                 authService.listarUsuarios();
 
-        usuarios.forEach(
-                usuario -> usuario.setSenhaHash(null)
-        );
-
         return ResponseEntity.ok(usuarios);
     }
 
@@ -138,8 +132,6 @@ public class AuthController {
                         request.telefone(),
                         request.dataNascimento()
                 );
-
-        usuario.setSenhaHash(null);
 
         return ResponseEntity.ok(usuario);
     }

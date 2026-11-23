@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -8,7 +9,6 @@ import { useEffect, useState } from "react";
 import {
   Student,
   getSession,
-  setSession,
 } from "@/lib/clinic-store";
 
 import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
@@ -16,6 +16,8 @@ import { StudentDashboard } from "@/components/dashboard/StudentDashboard";
 import { Toaster } from "sonner";
 
 export const Route = createFileRoute("/dashboard")({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: DashboardPage,
 });
 
@@ -48,7 +50,7 @@ function DashboardPage() {
   }
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({

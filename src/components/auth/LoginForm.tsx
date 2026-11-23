@@ -6,15 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import {
-  Student,
-  setSession,
-} from "@/lib/clinic-store";
+import { login } from "@/lib/auth";
 
 import { toast } from "sonner";
 
 type LoginFormProps = {
-  onLogin: (student: Student) => void;
+  onLogin: () => void;
 };
 
 export function LoginForm({
@@ -25,6 +22,7 @@ export function LoginForm({
   const [showPassword, setShowPassword] =
     useState(false);
 
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (
@@ -36,80 +34,14 @@ export function LoginForm({
       return;
     }
 
+    setError("");
     try {
       setLoading(true);
-
-      const response = await fetch(
-        "http://localhost:8080/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email,
-            senha: password,
-          }),
-        },
-      );
-
-      if (!response.ok) {
-        const errorData = await response.json();
-
-        throw new Error(
-          errorData.erro ||
-            "Email ou senha inválidos.",
-        );
-      }
-
-      const data = await response.json();
-
-      const studentData: Student = {
-        id: String(data.id),
-
-        name:
-          data.nome &&
-          !String(data.nome).includes("@")
-            ? data.nome
-            : email.split("@")[0],
-
-        email:
-          data.email || email,
-
-        /*
-         * Valor temporário.
-         *
-         * Quando o backend de planos
-         * e pacotes estiver pronto,
-         * sessionsRemaining virá
-         * diretamente da API.
-         */
-        sessionsRemaining:
-          data.sessionsRemaining ?? 8,
-
-        /*
-         * Mantido temporariamente
-         * porque o tipo Student atual
-         * ainda possui password.
-         *
-         * A senha real nunca é salva
-         * aqui após o login.
-         */
-        password: "",
-      };
-
-      setSession(studentData);
-      onLogin(studentData);
-
-      toast.success(
-        "Login realizado com sucesso!",
-      );
+      await login(email, password);
+      onLogin();
+      toast.success("Login realizado com sucesso!");
     } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Erro ao conectar com o servidor.",
-      );
+      setError(error instanceof Error ? error.message : "Não foi possível entrar.");
     } finally {
       setLoading(false);
     }
@@ -119,6 +51,7 @@ export function LoginForm({
     <form
       className="space-y-4"
       onSubmit={submit}
+      aria-busy={loading}
     >
       {/* EMAIL */}
       <div className="space-y-2">
@@ -192,6 +125,8 @@ export function LoginForm({
           </button>
         </div>
       </div>
+
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
       {/* ENTRAR */}
       <Button

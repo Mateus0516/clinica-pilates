@@ -1,5 +1,6 @@
 package com.clinica.backend.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDate;
@@ -46,6 +47,7 @@ public class Usuario {
         this.email = email;
     }
 
+    @JsonIgnore
     public String getSenhaHash() {
         return senhaHash;
     }

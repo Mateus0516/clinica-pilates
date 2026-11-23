@@ -16,8 +16,6 @@ import { Button } from "@/components/ui/button";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 
-import type { Student } from "@/lib/clinic-store";
-
 export const Route = createFileRoute("/paciente")({
   component: PatientAccessPage,
 });
@@ -28,7 +26,7 @@ function PatientAccessPage() {
   const [mode, setMode] =
     useState<"login" | "signup">("login");
 
-  const handleLogin = (_student: Student) => {
+  const handleLogin = () => {
     navigate({
       to: "/dashboard",
       replace: true,

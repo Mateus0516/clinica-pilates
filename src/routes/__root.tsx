@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { removeLegacyCredentials, requirePatient, sessionEndedEvent } from "@/lib/auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -182,6 +184,21 @@ function RootShell({
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const router = useRouter();
+
+  useEffect(() => {
+    removeLegacyCredentials();
+    const handleSessionEnd = () => {
+      if (router.state.matches.some((match) =>
+        router.routesById[match.routeId].options.beforeLoad === requirePatient
+      )) {
+        void router.navigate({ to: "/paciente", replace: true });
+      }
+    };
+
+    window.addEventListener(sessionEndedEvent, handleSessionEnd);
+    return () => window.removeEventListener(sessionEndedEvent, handleSessionEnd);
+  }, [router]);
 
   return (
     <QueryClientProvider client={queryClient}>

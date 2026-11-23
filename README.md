@@ -152,8 +152,10 @@ npm run dev
 O frontend estará disponível em:
 
 ```text
-http://localhost:5173
+http://localhost:8081
 ```
+
+O frontend usa `http://localhost:8080` como endereço padrão da API. Para mudar o endereço, copie `.env.example` para `.env`, ajuste `VITE_API_URL` e reinicie o Vite.
 
 ---
 
@@ -189,14 +191,14 @@ A API REST disponibiliza os seguintes endpoints:
 |---|---|---|
 | POST | `/auth/register` | Cadastrar usuário |
 | POST | `/auth/login` | Autenticar usuário |
-| GET | `/auth/usuarios` | Listar usuários |
-| GET | `/auth/usuarios/{id}` | Buscar usuário por ID |
-| PUT | `/auth/usuarios/{id}` | Atualizar usuário |
-| DELETE | `/auth/usuarios/{id}` | Excluir usuário |
+| GET | `/auth/me` | Consultar o perfil autenticado |
+| GET | `/auth/usuarios` | Listar usuários (administrador) |
+| PUT | `/auth/usuarios/{id}` | Atualizar usuário (administrador) |
+| DELETE | `/auth/usuarios/{id}` | Excluir usuário (administrador) |
 
 ### Segurança
 
-O sistema utiliza **BCrypt** para armazenar senhas de forma protegida, evitando o armazenamento de senhas em texto puro.
+O backend armazena senhas com **BCrypt**. O frontend mantém o JWT no `sessionStorage` da aba, envia o cabeçalho `Authorization: Bearer` nas chamadas autenticadas e valida o perfil em `/auth/me` antes de abrir as rotas privadas do paciente.
 
 ---
 

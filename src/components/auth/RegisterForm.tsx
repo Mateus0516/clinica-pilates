@@ -7,27 +7,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import {
-  type Student,
-  setSession,
-} from "@/lib/clinic-store";
-
+import { login, register } from "@/lib/auth";
 import { toast } from "sonner";
 
 type RegisterFormProps = {
-  onLogin: (student: Student) => void;
+  onLogin: () => void;
 };
-
-type RegisterResponse = {
-  id?: number | string;
-  nome?: string;
-  email?: string;
-  sessionsRemaining?: number;
-  erro?: string;
-  message?: string;
-};
-
-const API_URL = "http://localhost:8080";
 
 function getTodayISO(): string {
   const today = new Date();
@@ -63,6 +48,7 @@ export function RegisterForm({
     setShowConfirmPassword,
   ] = useState(false);
 
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const submit = async (
@@ -71,25 +57,26 @@ export function RegisterForm({
     event.preventDefault();
 
     if (loading) return;
+    setError("");
 
     const normalizedName = name.trim();
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedPhone = phone.replace(/\D/g, "");
 
     if (normalizedName.length < 3) {
-      toast.error("Informe seu nome completo.");
+      setError("Informe seu nome completo.");
       return;
     }
 
     if (!birthDate) {
-      toast.error("Informe sua data de nascimento.");
+      setError("Informe sua data de nascimento.");
       return;
     }
 
     const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 
     if (!datePattern.test(birthDate)) {
-      toast.error("Data de nascimento inválida.");
+      setError("Data de nascimento inválida.");
       return;
     }
 
@@ -113,120 +100,55 @@ export function RegisterForm({
       birthDate < "1900-01-01" ||
       birthDate > getTodayISO()
     ) {
-      toast.error("Informe uma data de nascimento válida.");
+      setError("Informe uma data de nascimento válida.");
       return;
     }
 
     if (normalizedPhone.length < 10 ||
         normalizedPhone.length > 11) {
-      toast.error("Informe um telefone válido.");
+      setError("Informe um telefone válido.");
       return;
     }
 
     if (
       !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
     ) {
-      toast.error("Informe um e-mail válido.");
+      setError("Informe um e-mail válido.");
       return;
     }
 
     if (password.length < 6) {
-      toast.error(
+      setError(
         "A senha precisa ter pelo menos 6 caracteres."
       );
       return;
     }
 
     if (password !== confirmPassword) {
-      toast.error("As senhas não coincidem.");
+      setError("As senhas não coincidem.");
       return;
     }
 
+    let accountCreated = false;
     try {
       setLoading(true);
-
-      const response = await fetch(
-        `${API_URL}/auth/register`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            nome: normalizedName,
-            email: normalizedEmail,
-            senha: password,
-            telefone: normalizedPhone,
-            dataNascimento: birthDate,
-          }),
-        }
-      );
-
-      const responseText = await response.text();
-
-      let data: RegisterResponse = {};
-
-      if (responseText) {
-        try {
-          data = JSON.parse(responseText);
-        } catch {
-          // O backend pode retornar texto em caso de erro.
-        }
-      }
-
-      if (!response.ok) {
-        if (response.status === 409) {
-          throw new Error(
-            "Este e-mail já está cadastrado."
-          );
-        }
-
-        if (response.status === 403) {
-          throw new Error(
-            "Acesso bloqueado pelo servidor. Verifique o CORS."
-          );
-        }
-
-        throw new Error(
-          data.erro ||
-          data.message ||
-          `Não foi possível criar a conta. Erro ${response.status}.`
-        );
-      }
-
-      if (data.id == null) {
-        toast.success(
-          "Conta criada! Faça login para continuar."
-        );
-
-        return;
-      }
-
-      const studentData: Student = {
-        id: String(data.id),
-        name: data.nome || normalizedName,
-        email: data.email || normalizedEmail,
-
-        // Valor temporário até integrar os planos.
-        sessionsRemaining:
-          data.sessionsRemaining ?? 8,
-
-        // Nunca armazenar a senha real.
-        password: "",
-      };
-
-      setSession(studentData);
+      await register({
+        nome: normalizedName,
+        email: normalizedEmail,
+        senha: password,
+        telefone: normalizedPhone,
+        dataNascimento: birthDate,
+      });
+      accountCreated = true;
+      setPassword("");
+      setConfirmPassword("");
+      await login(normalizedEmail, password);
+      onLogin();
       toast.success("Conta criada com sucesso!");
-      onLogin(studentData);
-
     } catch (error) {
-      console.error("Erro ao cadastrar:", error);
-
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "Erro ao conectar com o servidor."
-      );
+      setError(accountCreated
+        ? "Conta criada. Use a aba Entrar para acessar sua conta."
+        : error instanceof Error ? error.message : "Não foi possível criar a conta.");
     } finally {
       setLoading(false);
     }
@@ -236,6 +158,7 @@ export function RegisterForm({
     <form
       className="space-y-4"
       onSubmit={submit}
+      aria-busy={loading}
     >
       {/* NOME COMPLETO */}
       <div className="space-y-2">
@@ -417,6 +340,8 @@ export function RegisterForm({
       </div>
 
       {/* BOTÃO CRIAR CONTA */}
+      {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+
       <Button
         type="submit"
         className="w-full"

@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.dao.DuplicateKeyException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -37,7 +39,7 @@ public class AuthService {
             LocalDate dataNascimento
     ) {
         if (usuarioRepository.findByEmail(email).isPresent()) {
-            throw new RuntimeException("E-mail já cadastrado");
+            throw new DuplicateKeyException("E-mail já cadastrado");
         }
 
         Usuario usuario = new Usuario();
@@ -61,7 +63,7 @@ public class AuthService {
         Usuario usuario = usuarioRepository
                 .findByEmail(email)
                 .orElseThrow(
-                        () -> new RuntimeException(
+                        () -> new BadCredentialsException(
                                 "Credenciais inválidas"
                         )
                 );
@@ -70,7 +72,7 @@ public class AuthService {
                 senha,
                 usuario.getSenhaHash()
         )) {
-            throw new RuntimeException(
+            throw new BadCredentialsException(
                     "Credenciais inválidas"
             );
         }

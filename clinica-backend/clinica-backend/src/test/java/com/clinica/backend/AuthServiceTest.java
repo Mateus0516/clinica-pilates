@@ -102,7 +102,7 @@ public class AuthServiceTest {
         );
 
         assertEquals(
-                "Senha inválida",
+                "Credenciais inválidas",
                 erro.getMessage()
         );
     }

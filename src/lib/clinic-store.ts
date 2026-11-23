@@ -1,3 +1,5 @@
+import { getPatient } from "./auth";
+
 export type Booking = {
   id: string;
   studentId: string;
@@ -12,37 +14,14 @@ export type Student = {
   id: string;
   name: string;
   email: string;
-  password: string;
-
-  /*
-   * Quantidade de sessões disponíveis
-   * no pacote atual do paciente.
-   *
-   * No futuro, isso virá do backend
-   * de acordo com o plano/pacote
-   * configurado pela clínica.
-   */
+  phone: string;
+  birthDate: string;
   sessionsRemaining: number;
 };
 
-/*
- * Tipo usado somente para migrar
- * usuários antigos que ainda possuem
- * a propriedade "credits" salva
- * no localStorage.
- */
-type LegacyStudent = Student & {
-  credits?: number;
-};
+type LocalStudent = Partial<Pick<Student, "name" | "email" | "sessionsRemaining">>;
 
-const STUDENTS_KEY =
-  "pilates_students";
-
-const BOOKINGS_KEY =
-  "pilates_bookings";
-
-const SESSION_KEY =
-  "pilates_session";
+const BOOKINGS_KEY = "pilates_bookings";
 
 export const TIME_SLOTS = [
   "07:00",
@@ -103,90 +82,6 @@ function write<T>(
   );
 }
 
-/*
- * Migração temporária:
- *
- * Converte automaticamente usuários
- * antigos que ainda possuem "credits"
- * para o novo campo
- * "sessionsRemaining".
- *
- * Depois que o backend estiver
- * integrado, essa migração poderá
- * ser removida.
- */
-function migrateStudent(
-  student: LegacyStudent,
-): Student {
-  /*
-   * Usuário já está no formato novo.
-   */
-  if (
-    typeof student.sessionsRemaining ===
-    "number"
-  ) {
-    const {
-      credits: _legacyCredits,
-      ...currentStudent
-    } = student;
-
-    return currentStudent;
-  }
-
-  /*
-   * Usuário antigo:
-   * aproveita a quantidade de sessões do cadastro antigo
-   * como quantidade de sessões.
-   */
-  const sessionsRemaining =
-    typeof student.credits === "number"
-      ? student.credits
-      : 8;
-
-  const {
-    credits: _legacyCredits,
-    ...studentWithoutCredits
-  } = student;
-
-  return {
-    ...studentWithoutCredits,
-    sessionsRemaining,
-  };
-}
-
-export function getStudents(): Student[] {
-  const storedStudents =
-    read<LegacyStudent[]>(
-      STUDENTS_KEY,
-      [],
-    );
-
-  const migratedStudents =
-    storedStudents.map(
-      migrateStudent,
-    );
-
-  /*
-   * Atualiza o localStorage
-   * para o formato novo.
-   */
-  write(
-    STUDENTS_KEY,
-    migratedStudents,
-  );
-
-  return migratedStudents;
-}
-
-export function saveStudents(
-  students: Student[],
-) {
-  write(
-    STUDENTS_KEY,
-    students,
-  );
-}
-
 export function getBookings(): Booking[] {
   return read<Booking[]>(
     BOOKINGS_KEY,
@@ -204,144 +99,33 @@ export function saveBookings(
 }
 
 export function getSession(): Student | null {
-  const storedStudent =
-    read<LegacyStudent | null>(
-      SESSION_KEY,
-      null,
-    );
+  const patient = getPatient();
+  if (!patient) return null;
 
-  if (!storedStudent) {
-    return null;
-  }
-
-  const migratedStudent =
-    migrateStudent(
-      storedStudent,
-    );
-
-  /*
-   * Atualiza também a sessão
-   * atual para o formato novo.
-   */
-  write(
-    SESSION_KEY,
-    migratedStudent,
-  );
-
-  return migratedStudent;
-}
-
-export function setSession(
-  student: Student | null,
-) {
-  if (student) {
-    write(
-      SESSION_KEY,
-      student,
-    );
-
-    return;
-  }
-
-  if (
-    typeof window !== "undefined"
-  ) {
-    localStorage.removeItem(
-      SESSION_KEY,
-    );
-  }
-}
-
-export function login(
-  email: string,
-  password: string,
-): Student {
-  const student =
-    getStudents().find(
-      (currentStudent) =>
-        currentStudent.email.toLowerCase() ===
-        email.toLowerCase(),
-    );
-
-  if (!student) {
-    throw new Error(
-      "Email não cadastrado.",
-    );
-  }
-
-  if (
-    student.password !==
-    password
-  ) {
-    throw new Error(
-      "Senha incorreta.",
-    );
-  }
-
-  setSession(student);
-
-  return student;
-}
-
-export function register(
-  name: string,
-  email: string,
-  password: string,
-): Student {
-  const students =
-    getStudents();
-
-  const alreadyExists =
-    students.some(
-      (student) =>
-        student.email.toLowerCase() ===
-        email.toLowerCase(),
-    );
-
-  if (alreadyExists) {
-    throw new Error(
-      "Email já cadastrado. Faça login.",
-    );
-  }
-
-  const student: Student = {
-    id: crypto.randomUUID(),
-    name,
-    email,
-    password,
-
-    /*
-     * Valor temporário para o
-     * frontend atual.
-     *
-     * Depois será definido pelo
-     * pacote cadastrado pela clínica.
-     */
-    sessionsRemaining: 8,
+  const local = read<LocalStudent>(`timely_patient_preferences:${patient.id}`, {});
+  return {
+    id: String(patient.id),
+    name: local.name ?? patient.nome,
+    email: local.email ?? patient.email,
+    phone: patient.telefone ?? "",
+    birthDate: patient.dataNascimento ?? "",
+    // Regra local preexistente até a integração de planos e sessões.
+    sessionsRemaining: local.sessionsRemaining ?? 8,
   };
-
-  students.push(student);
-
-  saveStudents(students);
-  setSession(student);
-
-  return student;
 }
 
-export function updateStudent(
-  student: Student,
-) {
-  const students =
-    getStudents().map(
-      (currentStudent) =>
-        currentStudent.id ===
-        student.id
-          ? student
-          : currentStudent,
-    );
+export function updateStudent(student: Student) {
+  const current = getSession();
+  if (!current || current.id !== student.id) return;
 
-  saveStudents(students);
-  setSession(student);
+  const key = `timely_patient_preferences:${student.id}`;
+  const local = read<LocalStudent>(key, {});
+  write(key, {
+    ...local,
+    ...(current.name !== student.name && { name: student.name }),
+    ...(current.email !== student.email && { email: student.email }),
+    sessionsRemaining: student.sessionsRemaining,
+  } satisfies LocalStudent);
 }
 
 export function getWeekDates(

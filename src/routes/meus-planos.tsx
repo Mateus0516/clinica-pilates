@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -26,12 +27,13 @@ import { Card } from "@/components/ui/card";
 import {
   Student,
   getSession,
-  setSession,
 } from "@/lib/clinic-store";
 
 export const Route = createFileRoute(
   "/meus-planos",
 )({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: MyPlansPage,
 });
 
@@ -69,7 +71,7 @@ function MyPlansPage() {
   }, [navigate]);
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({

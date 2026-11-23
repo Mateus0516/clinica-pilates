@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -27,7 +28,6 @@ import {
   getBookings,
   getSession,
   saveBookings,
-  setSession,
   updateStudent,
 } from "@/lib/clinic-store";
 
@@ -41,6 +41,8 @@ import {
 } from "sonner";
 
 export const Route = createFileRoute("/aulas")({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: ClassesPage,
 });
 
@@ -118,7 +120,7 @@ function ClassesPage() {
    * Logout.
    */
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({

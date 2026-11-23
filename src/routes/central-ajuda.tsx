@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
@@ -13,9 +14,11 @@ import {
 } from "lucide-react";
 
 import { PatientLayout } from "@/components/layout/PatientLayout";
-import { getSession, setSession } from "@/lib/clinic-store";
+import { getSession } from "@/lib/clinic-store";
 
 export const Route = createFileRoute("/central-ajuda")({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: CentralAjudaPage,
 });
 
@@ -70,7 +73,7 @@ function CentralAjudaPage() {
   }, [navigate]);
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     navigate({ to: "/acesso", replace: true });
   };
 

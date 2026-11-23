@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -26,12 +27,13 @@ import { Card } from "@/components/ui/card";
 import {
   Student,
   getSession,
-  setSession,
 } from "@/lib/clinic-store";
 
 export const Route = createFileRoute(
   "/gerenciar-pagamentos",
 )({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: ManagePaymentsPage,
 });
 
@@ -69,7 +71,7 @@ function ManagePaymentsPage() {
   }, [navigate]);
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({

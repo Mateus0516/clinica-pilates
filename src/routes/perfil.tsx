@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -36,7 +37,7 @@ import {
   Student,
   getBookings,
   getSession,
-  setSession,
+  updateStudent,
 } from "@/lib/clinic-store";
 
 import {
@@ -45,6 +46,8 @@ import {
 } from "sonner";
 
 export const Route = createFileRoute("/perfil")({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: ProfilePage,
 });
 
@@ -122,12 +125,14 @@ function ProfilePage() {
     setStudent(currentStudent);
     setName(currentStudent.name);
     setEmail(currentStudent.email);
+    setPhone(currentStudent.phone);
+    setBirthDate(currentStudent.birthDate);
 
     setReady(true);
   }, [navigate]);
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({
@@ -236,7 +241,7 @@ function ProfilePage() {
       email: email.trim(),
     };
 
-    setSession(updatedStudent);
+    updateStudent(updatedStudent);
     setStudent(updatedStudent);
 
     toast.success(

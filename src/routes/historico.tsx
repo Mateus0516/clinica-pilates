@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -28,12 +29,13 @@ import {
   Student,
   getBookings,
   getSession,
-  setSession,
 } from "@/lib/clinic-store";
 
 import { Toaster } from "sonner";
 
 export const Route = createFileRoute("/historico")({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: HistoryPage,
 });
 
@@ -89,7 +91,7 @@ function HistoryPage() {
   }, [navigate]);
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({

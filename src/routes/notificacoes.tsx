@@ -1,3 +1,4 @@
+import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
@@ -27,7 +28,6 @@ import { Card } from "@/components/ui/card";
 import {
   Student,
   getSession,
-  setSession,
 } from "@/lib/clinic-store";
 
 import {
@@ -40,6 +40,8 @@ import {
 } from "@/lib/notification-store";
 
 export const Route = createFileRoute("/notificacoes")({
+  ssr: false,
+  beforeLoad: requirePatient,
   component: NotificationsPage,
 });
 
@@ -127,7 +129,7 @@ function NotificationsPage() {
   }, [navigate]);
 
   const handleLogout = () => {
-    setSession(null);
+    logout();
     setStudent(null);
 
     navigate({
