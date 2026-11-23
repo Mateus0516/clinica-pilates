@@ -1,3 +1,17 @@
+type ProfileAddress = {
+  logradouro: string | null;
+  bairro: string | null;
+  cidade: string | null;
+  estado: string | null;
+  cep: string | null;
+};
+
+export type CommunicationPreferences = {
+  email: boolean;
+  whatsapp: boolean;
+  push: boolean;
+};
+
 import { redirect } from "@tanstack/react-router";
 import { ApiError, apiRequest } from "./api";
 
@@ -8,6 +22,8 @@ type PatientProfile = {
   telefone: string | null;
   dataNascimento: string | null;
   perfil: string;
+  endereco: ProfileAddress;
+  preferencias: CommunicationPreferences;
 };
 
 type Registration = {
@@ -26,6 +42,7 @@ let patient: PatientProfile | null = null;
 let validation: { token: string; promise: Promise<PatientProfile | null> } | undefined;
 let expiryTimer: number | undefined;
 let loginAttempt = 0;
+let profileRevision = 0;
 
 export function removeLegacyCredentials() {
   localStorage.removeItem("pilates_students");
@@ -84,11 +101,52 @@ export async function authenticatedRequest<T>(
   }
 }
 
+type PersonalData = {
+  nome: string;
+  email: string;
+  telefone: string;
+  dataNascimento: string;
+  endereco: ProfileAddress;
+};
+
+export async function updatePatient(data: PersonalData) {
+  const profile = await authenticatedRequest<PatientProfile>("/auth/me", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  profileRevision++;
+  patient = profile;
+  return profile;
+}
+
+export async function updateCommunicationPreferences(data: CommunicationPreferences) {
+  const profile = await authenticatedRequest<PatientProfile>("/auth/me/preferencias", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  profileRevision++;
+  patient = profile;
+  return profile;
+}
+
+export async function changePatientPassword(data: {
+  senhaAtual: string;
+  novaSenha: string;
+  confirmacaoNovaSenha: string;
+}) {
+  await authenticatedRequest<void>("/auth/me/senha", {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  logout();
+}
+
 function validateSession(): Promise<PatientProfile | null> {
   const token = sessionStorage.getItem(tokenKey);
   if (!token) return Promise.resolve(null);
   if (validation?.token === token) return validation.promise;
 
+  const revision = profileRevision;
   const promise = (async () => {
     try {
       const profile = await authenticatedRequest<PatientProfile>("/auth/me");
@@ -104,8 +162,8 @@ function validateSession(): Promise<PatientProfile | null> {
         return null;
       }
       if (sessionStorage.getItem(tokenKey) !== token) return null;
-      patient = profile;
-      return profile;
+      if (revision === profileRevision) patient = profile;
+      return patient;
     } catch (error) {
       if (error instanceof ApiError && error.status === 401) return null;
       throw error;

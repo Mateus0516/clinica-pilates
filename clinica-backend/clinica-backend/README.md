@@ -109,3 +109,35 @@ com JDK 17. A suíte grava usuários e reservas de teste, então use um
 esquema novo para cada execução. Para checar a atualização de uma base já
 populada, repita em uma cópia de teste do esquema anterior e confira se os
 registros de usuários permanecem após a criação das quatro tabelas.
+
+## Perfil do paciente
+
+`GET /auth/me` consulta o usuário autenticado. `PUT /auth/me` atualiza
+`nome`, `email`, `telefone` e `dataNascimento` do paciente identificado
+pelo token. A data usa `AAAA-MM-DD`. O e-mail é normalizado, e um endereço
+em uso retorna HTTP 409.
+
+`PUT /auth/me/senha` recebe `senhaAtual`, `novaSenha` e
+`confirmacaoNovaSenha`. A nova senha deve ter pelo menos oito caracteres,
+com letra e número, e no máximo 72 bytes em UTF-8. O sucesso retorna HTTP 204
+e exige novo login em todas as sessões do usuário.
+
+Os JWTs emitidos nesta versão usam o ID do usuário como assunto e incluem uma
+versão de credencial. A alteração de e-mail preserva o ID e a sessão existente.
+A troca de senha grava o hash BCrypt e incrementa a versão na mesma transação.
+O filtro valida a versão contra o banco a cada requisição. Tokens legados
+identificados pelo e-mail exigem novo login após a atualização do backend.
+
+O Hibernate adiciona a coluna anulável `usuarios.versao_credencial`.
+Registros com valor nulo usam a versão zero. Os hashes e dados existentes são
+preservados.
+
+O campo opcional `endereco` de `PUT /auth/me` aceita `logradouro`, `bairro`,
+`cidade`, `estado` (UF) e `cep`. A omissão do objeto preserva o endereço,
+enquanto campos vazios no objeto limpam seus valores. O CEP é salvo com oito
+dígitos. `GET /auth/me` devolve o endereço e as preferências atuais.
+
+`PUT /auth/me/preferencias` salva os três booleanos `email`, `whatsapp` e
+`push` do paciente autenticado. As colunas são anuláveis e usuários existentes
+mantêm o padrão anterior de opções ligadas. Esta API armazena escolhas de
+comunicação e não dispara mensagens.

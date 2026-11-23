@@ -1,3 +1,4 @@
+import { Toaster } from "sonner";
 import {
   createFileRoute,
   useNavigate,
@@ -35,6 +36,7 @@ function PatientAccessPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-white via-sky-50 to-blue-50">
+      <Toaster richColors position="top-center" />
       {/* TOPO */}
       <header className="border-b border-slate-200 bg-white/95">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">

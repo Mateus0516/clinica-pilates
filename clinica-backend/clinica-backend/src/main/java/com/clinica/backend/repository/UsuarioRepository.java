@@ -14,7 +14,9 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
 
     Optional<Usuario> findByEmail(String email);
 
+    boolean existsByEmailIgnoreCaseAndIdNot(String email, Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select u from Usuario u where u.email = :email")
-    Optional<Usuario> bloquearPorEmail(@Param("email") String email);
+    @Query("select u from Usuario u where u.id = :id")
+    Optional<Usuario> bloquearPorId(@Param("id") Long id);
 }

@@ -19,6 +19,16 @@ public class GlobalExceptionHandler {
                 .body(Map.of("erro", "Credenciais inválidas"));
     }
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> tratarStatus(org.springframework.web.server.ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of("erro", ex.getReason()));
+    }
+
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> tratarCorpoInvalido() {
+        return ResponseEntity.badRequest().body(Map.of("erro", "Confira os campos e o formato da requisição."));
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, String>> tratarRuntimeException(RuntimeException ex) {
         Map<String, String> erro = new HashMap<>();

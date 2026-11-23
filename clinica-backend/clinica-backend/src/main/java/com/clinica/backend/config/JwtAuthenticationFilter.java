@@ -11,7 +11,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.clinica.backend.model.Usuario;
 import com.clinica.backend.repository.UsuarioRepository;
 import com.clinica.backend.service.JwtService;
 
@@ -50,36 +49,16 @@ public class JwtAuthenticationFilter
 
             String token = authorization.substring(7);
 
-            if (jwtService.validarToken(token)
-                    && SecurityContextHolder
-                        .getContext()
-                        .getAuthentication() == null) {
-
-                String email = jwtService.extrairEmail(token);
-
-                Usuario usuario = usuarioRepository
-                        .findByEmail(email)
-                        .orElse(null);
-
-                if (usuario != null) {
-
-                    var authorities = List.of(
-                            new SimpleGrantedAuthority(
-                                    "ROLE_" + usuario.getPerfil()
-                            )
-                    );
-
-                    var authentication =
-                            new UsernamePasswordAuthenticationToken(
-                                    usuario.getEmail(),
-                                    null,
-                                    authorities
-                            );
-
-                    SecurityContextHolder
-                            .getContext()
-                            .setAuthentication(authentication);
-                }
+            if (SecurityContextHolder.getContext().getAuthentication() == null) {
+                jwtService.verificar(token).ifPresent(identidade ->
+                    usuarioRepository.findById(identidade.id())
+                        .filter(usuario -> usuario.getVersaoCredencial() == identidade.versao())
+                        .ifPresent(usuario -> {
+                            var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getPerfil()));
+                            var authentication = new UsernamePasswordAuthenticationToken(identidade, null, authorities);
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+                        })
+                );
             }
         }
 

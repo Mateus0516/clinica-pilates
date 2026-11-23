@@ -75,9 +75,9 @@ class AgendamentoService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public AgendamentoDto.Agendamento reservar(String email, AgendamentoDto.Reserva pedido) {
+    public AgendamentoDto.Agendamento reservar(Long pacienteId, AgendamentoDto.Reserva pedido) {
         validarHorario(pedido.data(), pedido.horario(), pedido.instrutorCodigo());
-        Usuario paciente = bloquearPaciente(email);
+        Usuario paciente = bloquearPaciente(pacienteId);
         // A linha do instrutor também protege a primeira reserva, antes de a ocorrência existir.
         Instrutor instrutor = bloquearInstrutor(pedido.instrutorCodigo());
         Instant agora = relogio.instant();
@@ -102,8 +102,8 @@ class AgendamentoService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public AgendamentoDto.Agendamento cancelar(String email, Long id) {
-        Usuario paciente = bloquearPaciente(email);
+    public AgendamentoDto.Agendamento cancelar(Long pacienteId, Long id) {
+        Usuario paciente = bloquearPaciente(pacienteId);
         Agendamento reserva = buscarReserva(paciente, id);
         Aula aula = reserva.getAula();
         bloquearInstrutor(aula.getInstrutor().getCodigo());
@@ -116,16 +116,15 @@ class AgendamentoService {
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
-    public AgendamentoDto.Agendamento confirmarIntencao(String email, Long id) {
-        Agendamento reserva = buscarReserva(bloquearPaciente(email), id);
+    public AgendamentoDto.Agendamento confirmarIntencao(Long pacienteId, Long id) {
+        Agendamento reserva = buscarReserva(bloquearPaciente(pacienteId), id);
         Instant agora = relogio.instant();
         exigirReservaFutura(reserva, agora);
         reserva.confirmarIntencaoPresenca(agora);
         return resposta(reserva, agora);
     }
 
-    public List<AgendamentoDto.Agendamento> consultarReservas(String email, boolean historico) {
-        Long pacienteId = usuarios.findByEmail(email).orElseThrow(() -> naoEncontrado("Paciente")).getId();
+    public List<AgendamentoDto.Agendamento> consultarReservas(Long pacienteId, boolean historico) {
         Instant agora = relogio.instant();
         var ordem = Comparator.comparing(AgendamentoDto.Agendamento::data)
                 .thenComparing(AgendamentoDto.Agendamento::horario)
@@ -137,8 +136,7 @@ class AgendamentoService {
                 .toList();
     }
 
-    public AgendamentoDto.Saldo consultarSaldo(String email) {
-        Long pacienteId = usuarios.findByEmail(email).orElseThrow(() -> naoEncontrado("Paciente")).getId();
+    public AgendamentoDto.Saldo consultarSaldo(Long pacienteId) {
         return new AgendamentoDto.Saldo(saldos.findById(pacienteId)
                 .map(SaldoSessoes::getDisponiveis).orElse(SALDO_INICIAL));
     }
@@ -174,8 +172,8 @@ class AgendamentoService {
         return data != null && data.getYear() >= 1000 && data.getYear() <= 9999;
     }
 
-    private Usuario bloquearPaciente(String email) {
-        Usuario paciente = usuarios.bloquearPorEmail(email).orElseThrow(() -> naoEncontrado("Paciente"));
+    private Usuario bloquearPaciente(Long pacienteId) {
+        Usuario paciente = usuarios.bloquearPorId(pacienteId).orElseThrow(() -> naoEncontrado("Paciente"));
         if (!"PACIENTE".equals(paciente.getPerfil())) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Acesso exclusivo para pacientes.");
         }

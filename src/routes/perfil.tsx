@@ -1,12 +1,11 @@
-import { logout, requirePatient } from "@/lib/auth";
+import { changePatientPassword, getPatient, logout, requirePatient, updatePatient, updateCommunicationPreferences, type CommunicationPreferences } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
 } from "@tanstack/react-router";
 
 import {
-  useEffect,
-  useMemo,
+  type FormEvent,
   useState,
 } from "react";
 
@@ -33,12 +32,10 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-import {
-  Student,
-  getBookings,
-  getSession,
-  updateStudent,
-} from "@/lib/clinic-store";
+import { ApiError } from "@/lib/api";
+import { clinicToday, useAppointmentHistory, useSessionBalance } from "@/lib/scheduling";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import {
   toast,
@@ -59,77 +56,52 @@ type SidebarSection =
   | "perfil"
   | "notificacoes";
 
+function profileError(error: unknown) {
+  if (error instanceof ApiError) {
+    if (error.status === 401) return "Sua sessão expirou. Entre novamente.";
+    if (error.status === 403) return "Acesso exclusivo para pacientes.";
+    if (error.status === 400 || error.status === 409) return error.detail ?? "Confira os dados informados.";
+  }
+  return "Não foi possível concluir a operação. Tente novamente.";
+}
+
 function ProfilePage() {
   const navigate = useNavigate();
 
-  const [student, setStudent] =
-    useState<Student | null>(null);
+  const [student, setStudent] = useState(getPatient);
+  const [name, setName] = useState(student?.nome ?? "");
+  const [email, setEmail] = useState(student?.email ?? "");
+  const [phone, setPhone] = useState(student?.telefone ?? "");
+  const [birthDate, setBirthDate] = useState(student?.dataNascimento ?? "");
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const balance = useSessionBalance();
+  const history = useAppointmentHistory();
+  const sessionsRemaining = balance.data?.sessoesDisponiveis;
+  const completedClasses = history.data?.filter((booking) => booking.status === "ENCERRADO").length;
 
-  const [ready, setReady] =
-    useState(false);
+  const [address, setAddress] = useState(student?.endereco?.logradouro ?? "");
+  const [district, setDistrict] = useState(student?.endereco?.bairro ?? "");
+  const [city, setCity] = useState(student?.endereco?.cidade ?? "");
+  const [state, setState] = useState(student?.endereco?.estado ?? "");
+  const [zipCode, setZipCode] = useState(student?.endereco?.cep ?? "");
+  const [savingPreferences, setSavingPreferences] = useState(false);
+  const preferences = student?.preferencias;
 
-  const [name, setName] =
-    useState("");
-
-  const [email, setEmail] =
-    useState("");
-
-  const [phone, setPhone] =
-    useState("");
-
-  const [birthDate, setBirthDate] =
-    useState("");
-
-  const [address, setAddress] =
-    useState("");
-
-  const [district, setDistrict] =
-    useState("");
-
-  const [city, setCity] =
-    useState("");
-
-  const [state, setState] =
-    useState("");
-
-  const [zipCode, setZipCode] =
-    useState("");
-
-  const [
-    emailNotifications,
-    setEmailNotifications,
-  ] = useState(true);
-
-  const [
-    whatsappNotifications,
-    setWhatsappNotifications,
-  ] = useState(true);
-
-  const [
-    pushNotifications,
-    setPushNotifications,
-  ] = useState(true);
-
-  useEffect(() => {
-    const currentStudent = getSession();
-
-    if (!currentStudent) {
-      navigate({
-        to: "/paciente",
-        replace: true,
-      });
-
-      return;
+  const handlePreference = async (channel: keyof CommunicationPreferences) => {
+    if (!preferences || savingPreferences || savingProfile || savingPassword) return;
+    setSavingPreferences(true);
+    try {
+      const profile = await updateCommunicationPreferences({ ...preferences, [channel]: !preferences[channel] });
+      setStudent(profile);
+      toast.success("Preferência atualizada.");
+    } catch (error) {
+      toast.error(profileError(error));
+    } finally {
+      setSavingPreferences(false);
     }
-
-    setStudent(currentStudent);
-    setName(currentStudent.name);
-    setEmail(currentStudent.email);
-    setPhone(currentStudent.phone);
-    setBirthDate(currentStudent.birthDate);
-
-    setReady(true);
-  }, [navigate]);
+  };
 
   const handleLogout = () => {
     logout();
@@ -193,78 +165,54 @@ function ProfilePage() {
     }
   };
 
-  const myBookings = useMemo(() => {
-    if (!student) {
-      return [];
+  const handleSaveProfile = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (savingProfile || savingPassword || savingPreferences) return;
+    setSavingProfile(true);
+    try {
+      const profile = await updatePatient({
+        nome: name, email, telefone: phone, dataNascimento: birthDate,
+        endereco: { logradouro: address, bairro: district, cidade: city, estado: state, cep: zipCode },
+      });
+      setStudent(profile);
+      setName(profile.nome);
+      setEmail(profile.email);
+      setPhone(profile.telefone ?? "");
+      setBirthDate(profile.dataNascimento ?? "");
+      setAddress(profile.endereco.logradouro ?? "");
+      setDistrict(profile.endereco.bairro ?? "");
+      setCity(profile.endereco.cidade ?? "");
+      setState(profile.endereco.estado ?? "");
+      setZipCode(profile.endereco.cep ?? "");
+      toast.success("Perfil atualizado com sucesso.");
+    } catch (error) {
+      toast.error(profileError(error));
+    } finally {
+      setSavingProfile(false);
     }
-
-    return getBookings().filter(
-      (booking) =>
-        booking.studentId === student.id,
-    );
-  }, [student]);
-
-  const completedClasses =
-    myBookings.filter((booking) => {
-      const bookingDate =
-        new Date(
-          `${booking.date}T${booking.time}:00`,
-        );
-
-      return bookingDate.getTime() < Date.now();
-    }).length;
-
-  const handleSaveProfile = () => {
-    if (!student) {
-      return;
-    }
-
-    if (name.trim().length < 3) {
-      toast.error(
-        "Informe seu nome completo.",
-      );
-
-      return;
-    }
-
-    if (!email.trim()) {
-      toast.error(
-        "Informe seu e-mail.",
-      );
-
-      return;
-    }
-
-    const updatedStudent: Student = {
-      ...student,
-      name: name.trim(),
-      email: email.trim(),
-    };
-
-    updateStudent(updatedStudent);
-    setStudent(updatedStudent);
-
-    toast.success(
-      "Perfil atualizado com sucesso!",
-    );
   };
 
-  if (!ready || !student) {
-    return null;
-  }
+  const handleChangePassword = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (savingPassword || savingProfile || savingPreferences) return;
+    const form = new FormData(event.currentTarget);
+    setSavingPassword(true);
+    try {
+      await changePatientPassword({
+        senhaAtual: String(form.get("senhaAtual") ?? ""),
+        novaSenha: String(form.get("novaSenha") ?? ""),
+        confirmacaoNovaSenha: String(form.get("confirmacaoNovaSenha") ?? ""),
+      });
+      await navigate({ to: "/paciente", replace: true });
+      toast.success("Senha alterada. Entre novamente com sua nova senha.");
+    } catch (error) {
+      toast.error(profileError(error));
+    } finally {
+      setSavingPassword(false);
+    }
+  };
 
-  const totalSessions = 16;
-
-  const usedSessions = Math.max(
-    totalSessions -
-      student.sessionsRemaining,
-    0,
-  );
-
-  const usedPercentage = Math.min(
-    (usedSessions / totalSessions) * 100,
-    100,
-  );
+  if (!student) return null;
 
   return (
     <PatientLayout
@@ -297,8 +245,8 @@ function ProfilePage() {
           <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 font-semibold text-primary">
             <CalendarCheck2 className="h-5 w-5" />
 
-            {student.sessionsRemaining}{" "}
-            {student.sessionsRemaining === 1
+            {sessionsRemaining ?? "—"}{" "}
+            {sessionsRemaining === 1
               ? "sessão disponível"
               : "sessões disponíveis"}
           </div>
@@ -316,7 +264,7 @@ function ProfilePage() {
 
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold text-slate-950">
-                    {student.name}
+                    {student.nome}
                   </h2>
 
                   <div className="mt-3 space-y-2 text-sm text-slate-600">
@@ -345,6 +293,7 @@ function ProfilePage() {
 
             {/* DADOS PESSOAIS */}
             <Card className="p-6">
+              <form onSubmit={handleSaveProfile} aria-busy={savingProfile}>
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h2 className="text-xl font-bold text-slate-950">
@@ -358,10 +307,10 @@ function ProfilePage() {
                 </div>
 
                 <Button
-                  type="button"
-                  onClick={handleSaveProfile}
+                  type="submit"
+                  disabled={savingProfile || savingPassword || savingPreferences}
                 >
-                  Salvar alterações
+                  {savingProfile ? "Salvando…" : "Salvar alterações"}
                 </Button>
               </div>
 
@@ -373,6 +322,8 @@ function ProfilePage() {
 
                   <Input
                     id="profile-name"
+                    required minLength={3} maxLength={80} autoComplete="name"
+                    disabled={savingProfile}
                     value={name}
                     onChange={(event) =>
                       setName(
@@ -389,6 +340,8 @@ function ProfilePage() {
 
                   <Input
                     id="profile-birth"
+                    required min="1900-01-01" max={clinicToday()} autoComplete="bday"
+                    disabled={savingProfile}
                     type="date"
                     value={birthDate}
                     onChange={(event) =>
@@ -406,6 +359,8 @@ function ProfilePage() {
 
                   <Input
                     id="profile-email"
+                    required maxLength={120} autoComplete="email"
+                    disabled={savingProfile}
                     type="email"
                     value={email}
                     onChange={(event) =>
@@ -423,6 +378,8 @@ function ProfilePage() {
 
                   <Input
                     id="profile-phone"
+                    required maxLength={30} autoComplete="tel"
+                    disabled={savingProfile}
                     type="tel"
                     value={phone}
                     onChange={(event) =>
@@ -442,11 +399,9 @@ function ProfilePage() {
                   <Input
                     id="profile-address"
                     value={address}
-                    onChange={(event) =>
-                      setAddress(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setAddress(event.target.value)}
+                    disabled={savingProfile}
+                    maxLength={180}
                     placeholder="Rua, número, complemento"
                   />
                 </div>
@@ -459,11 +414,9 @@ function ProfilePage() {
                   <Input
                     id="profile-district"
                     value={district}
-                    onChange={(event) =>
-                      setDistrict(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setDistrict(event.target.value)}
+                    disabled={savingProfile}
+                    maxLength={100}
                   />
                 </div>
 
@@ -475,11 +428,9 @@ function ProfilePage() {
                   <Input
                     id="profile-city"
                     value={city}
-                    onChange={(event) =>
-                      setCity(
-                        event.target.value,
-                      )
-                    }
+                    onChange={(event) => setCity(event.target.value)}
+                    disabled={savingProfile}
+                    maxLength={100}
                   />
                 </div>
 
@@ -491,12 +442,9 @@ function ProfilePage() {
 
                     <Input
                       id="profile-state"
-                      value={state}
-                      onChange={(event) =>
-                        setState(
-                          event.target.value,
-                        )
-                      }
+                    value={state}
+                    onChange={(event) => setState(event.target.value)}
+                    disabled={savingProfile}
                       placeholder="DF"
                       maxLength={2}
                     />
@@ -509,17 +457,16 @@ function ProfilePage() {
 
                     <Input
                       id="profile-zip"
-                      value={zipCode}
-                      onChange={(event) =>
-                        setZipCode(
-                          event.target.value,
-                        )
-                      }
+                    value={zipCode}
+                    onChange={(event) => setZipCode(event.target.value)}
+                    disabled={savingProfile}
+                    maxLength={9}
                       placeholder="00000-000"
                     />
                   </div>
                 </div>
               </div>
+              </form>
             </Card>
 
             {/* SEGURANÇA */}
@@ -539,11 +486,8 @@ function ProfilePage() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() =>
-                    toast.info(
-                      "Alteração de senha será conectada ao backend em seguida.",
-                    )
-                  }
+                  onClick={() => setPasswordOpen(true)}
+                  disabled={savingProfile}
                 >
                   <KeyRound className="mr-2 h-4 w-4" />
 
@@ -562,8 +506,7 @@ function ProfilePage() {
                   </p>
 
                   <p className="mt-1 text-sm text-slate-500">
-                    Sua senha é armazenada de
-                    forma criptografada.
+                    Sua senha é protegida com hash BCrypt.
                   </p>
                 </div>
 
@@ -572,6 +515,36 @@ function ProfilePage() {
                 </span>
               </div>
             </Card>
+
+            <Dialog open={passwordOpen} onOpenChange={(open) => {
+              if (!savingPassword) setPasswordOpen(open);
+            }}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Alterar senha</DialogTitle>
+                  <DialogDescription>
+                    Use pelo menos oito caracteres, com letra e número. Após salvar, entre novamente.
+                  </DialogDescription>
+                </DialogHeader>
+                <form className="space-y-4" onSubmit={handleChangePassword} aria-busy={savingPassword}>
+                  <fieldset className="space-y-4" disabled={savingPassword}>
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-current-password">Senha atual</Label>
+                      <Input id="profile-current-password" name="senhaAtual" type="password" autoComplete="current-password" required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-new-password">Nova senha</Label>
+                      <Input id="profile-new-password" name="novaSenha" type="password" autoComplete="new-password" required minLength={8} maxLength={72} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="profile-confirm-password">Confirme a nova senha</Label>
+                      <Input id="profile-confirm-password" name="confirmacaoNovaSenha" type="password" autoComplete="new-password" required maxLength={72} />
+                    </div>
+                    <Button type="submit">{savingPassword ? "Alterando…" : "Salvar nova senha"}</Button>
+                  </fieldset>
+                </form>
+              </DialogContent>
+            </Dialog>
 
             {/* PREFERÊNCIAS */}
             <Card className="p-6">
@@ -589,42 +562,27 @@ function ProfilePage() {
                   icon={Mail}
                   title="E-mails"
                   description="Receber novidades e informações por e-mail"
-                  enabled={
-                    emailNotifications
-                  }
-                  onChange={() =>
-                    setEmailNotifications(
-                      (current) => !current,
-                    )
-                  }
+                  enabled={preferences?.email ?? false}
+                  disabled={!preferences || savingPreferences || savingProfile || savingPassword}
+                  onChange={() => void handlePreference("email")}
                 />
 
                 <PreferenceRow
                   icon={Phone}
                   title="WhatsApp"
                   description="Receber lembretes e avisos por WhatsApp"
-                  enabled={
-                    whatsappNotifications
-                  }
-                  onChange={() =>
-                    setWhatsappNotifications(
-                      (current) => !current,
-                    )
-                  }
+                  enabled={preferences?.whatsapp ?? false}
+                  disabled={!preferences || savingPreferences || savingProfile || savingPassword}
+                  onChange={() => void handlePreference("whatsapp")}
                 />
 
                 <PreferenceRow
                   icon={Bell}
                   title="Notificações push"
                   description="Receber notificações no aplicativo"
-                  enabled={
-                    pushNotifications
-                  }
-                  onChange={() =>
-                    setPushNotifications(
-                      (current) => !current,
-                    )
-                  }
+                  enabled={preferences?.push ?? false}
+                  disabled={!preferences || savingPreferences || savingProfile || savingPassword}
+                  onChange={() => void handlePreference("push")}
                 />
               </div>
             </Card>
@@ -646,12 +604,12 @@ function ProfilePage() {
 
               <div className="mt-6">
                 <p className="font-bold text-slate-950">
-                  Plano Mensal
+                  Plano: indisponível
                 </p>
 
                 <p className="mt-1 text-sm text-slate-500">
                   Próxima renovação:{" "}
-                  10/09/2026
+                  —
                 </p>
               </div>
 
@@ -668,8 +626,8 @@ function ProfilePage() {
                   </p>
 
                   <p className="mt-1 text-2xl font-bold text-slate-950">
-                    {student.sessionsRemaining}{" "}
-                    {student.sessionsRemaining ===
+                    {sessionsRemaining ?? "—"}{" "}
+                    {sessionsRemaining ===
                     1
                       ? "sessão"
                       : "sessões"}
@@ -678,19 +636,14 @@ function ProfilePage() {
               </div>
 
               <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
-                <div
-                  className="h-full rounded-full bg-primary transition-all"
-                  style={{
-                    width: `${usedPercentage}%`,
-                  }}
-                />
+                <span className="sr-only">Progresso do plano indisponível</span>
               </div>
 
               <p className="mt-3 text-sm text-slate-500">
-                {usedSessions} de{" "}
-                {totalSessions} sessões
-                utilizadas
+                — de — sessões utilizadas
               </p>
+
+              <SchedulingFeedback query={balance} />
 
               <button
                 type="button"
@@ -718,11 +671,11 @@ function ProfilePage() {
                   <CalendarDays className="h-5 w-5 shrink-0 text-slate-500" />
 
                   <span className="flex-1 text-sm text-slate-600">
-                    Aulas realizadas
+                    Aulas encerradas
                   </span>
 
                   <span className="font-bold text-slate-950">
-                    {completedClasses}
+                    {completedClasses ?? "—"}
                   </span>
                 </div>
 
@@ -734,9 +687,7 @@ function ProfilePage() {
                   </span>
 
                   <span className="font-bold text-slate-950">
-                    {completedClasses > 0
-                      ? "100%"
-                      : "—"}
+                    —
                   </span>
                 </div>
 
@@ -748,7 +699,7 @@ function ProfilePage() {
                   </span>
 
                   <span className="font-bold text-slate-950">
-                    {completedClasses} aulas
+                    —
                   </span>
                 </div>
 
@@ -760,10 +711,12 @@ function ProfilePage() {
                   </span>
 
                   <span className="font-bold text-slate-950">
-                    Ago 2026
+                    —
                   </span>
                 </div>
               </div>
+
+              <SchedulingFeedback query={history} />
 
               <button
                 type="button"
@@ -872,12 +825,14 @@ function PreferenceRow({
   title,
   description,
   enabled,
+  disabled,
   onChange,
 }: {
   icon: typeof Mail;
   title: string;
   description: string;
   enabled: boolean;
+  disabled: boolean;
   onChange: () => void;
 }) {
   return (
@@ -898,6 +853,10 @@ function PreferenceRow({
 
       <button
         type="button"
+        role="switch"
+        aria-label={title}
+        aria-checked={enabled}
+        disabled={disabled}
         onClick={onChange}
         className={`relative h-6 w-11 rounded-full transition ${
           enabled

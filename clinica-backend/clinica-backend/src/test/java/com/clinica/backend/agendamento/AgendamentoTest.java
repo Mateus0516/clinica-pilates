@@ -50,7 +50,7 @@ class AgendamentoTest {
 
     @Test
     void agendaComSucessoEDescontaSessao() {
-        String paciente = paciente();
+        Long paciente = paciente();
         var pedido = pedido(SEGUNDA);
         assertEquals(8, servico.consultarSaldo(paciente).sessoesDisponiveis());
 
@@ -66,7 +66,7 @@ class AgendamentoTest {
     void recusaAulaSemVagasSemDescontarSaldo() {
         LocalDate data = SEGUNDA.plusDays(1);
         for (int i = 0; i < 3; i++) servico.reservar(paciente(), pedido(data));
-        String quartoPaciente = paciente();
+        Long quartoPaciente = paciente();
 
         erro(HttpStatus.CONFLICT, "Não há vagas para esta aula.",
                 () -> servico.reservar(quartoPaciente, pedido(data)));
@@ -75,7 +75,7 @@ class AgendamentoTest {
 
     @Test
     void recusaDuplicidadeInclusiveEmOutroHorarioEInstrutor() {
-        String paciente = paciente();
+        Long paciente = paciente();
         LocalDate data = SEGUNDA.plusDays(2);
         servico.reservar(paciente, pedido(data));
 
@@ -88,7 +88,7 @@ class AgendamentoTest {
 
     @Test
     void recusaReservaSemSaldo() {
-        String paciente = paciente();
+        Long paciente = paciente();
         LocalDate data = SEGUNDA.plusWeeks(2);
         for (int i = 0; i < 8; i++) servico.reservar(paciente, pedido(data.plusWeeks(i)));
 
@@ -99,7 +99,7 @@ class AgendamentoTest {
 
     @Test
     void impedeReservaNoInicioOuDepoisDaAulaNoFusoDaClinica() {
-        String paciente = paciente();
+        Long paciente = paciente();
         agora(inicio(SEGUNDA));
         erro(HttpStatus.UNPROCESSABLE_ENTITY, "O horário já passou ou começou.",
                 () -> servico.reservar(paciente, pedido(SEGUNDA)));
@@ -110,7 +110,7 @@ class AgendamentoTest {
 
     @Test
     void devolveSessaoComExatamenteSeisHorasELiberaVaga() {
-        String paciente = paciente();
+        Long paciente = paciente();
         LocalDate data = SEGUNDA.plusDays(3);
         var reserva = servico.reservar(paciente, pedido(data));
         agora(inicio(data).minus(Duration.ofHours(6)));
@@ -127,7 +127,7 @@ class AgendamentoTest {
 
     @Test
     void naoDevolveSessaoComMenosDeSeisHoras() {
-        String paciente = paciente();
+        Long paciente = paciente();
         LocalDate data = SEGUNDA.plusDays(4);
         var reserva = servico.reservar(paciente, pedido(data));
         agora(inicio(data).minus(Duration.ofHours(6)).plusSeconds(1));
@@ -138,7 +138,7 @@ class AgendamentoTest {
 
     @Test
     void impedeCancelamentoRepetidoEDevolucaoDuplicada() {
-        String paciente = paciente();
+        Long paciente = paciente();
         var reserva = servico.reservar(paciente, pedido(SEGUNDA.plusDays(5)));
         servico.cancelar(paciente, reserva.id());
 
@@ -149,8 +149,8 @@ class AgendamentoTest {
 
     @Test
     void exigeJwtDePacienteEImpedeManipulacaoDeReservaAlheia() throws Exception {
-        String titular = paciente();
-        String outro = paciente();
+        Long titular = paciente();
+        Long outro = paciente();
         var reserva = servico.reservar(titular, pedido(SEGUNDA.plusWeeks(1)));
 
         mvc.perform(get("/agendamentos")).andExpect(status().isUnauthorized());
@@ -175,8 +175,8 @@ class AgendamentoTest {
         LocalDate data = SEGUNDA.plusWeeks(1).plusDays(1);
         servico.reservar(paciente(), pedido(data));
         servico.reservar(paciente(), pedido(data));
-        String primeiro = paciente();
-        String segundo = paciente();
+        Long primeiro = paciente();
+        Long segundo = paciente();
         CountDownLatch prontos = new CountDownLatch(2);
         CountDownLatch largada = new CountDownLatch(1);
         var executor = Executors.newFixedThreadPool(2);
@@ -197,7 +197,7 @@ class AgendamentoTest {
 
     @Test
     void confirmaIntencaoSemRegistrarComparecimentoEListaAulaEncerrada() throws Exception {
-        String paciente = paciente();
+        Long paciente = paciente();
         LocalDate data = SEGUNDA.plusWeeks(1).plusDays(2);
         String token = bearer(paciente);
         mvc.perform(get("/aulas").param("inicio", data.toString()).param("fim", data.toString())
@@ -235,7 +235,7 @@ class AgendamentoTest {
                 .andExpect(jsonPath("$.paths['/agendamentos'].post.responses['201']").exists());
     }
 
-    private boolean disputarVaga(String paciente, LocalDate data, CountDownLatch prontos, CountDownLatch largada)
+    private boolean disputarVaga(Long paciente, LocalDate data, CountDownLatch prontos, CountDownLatch largada)
             throws InterruptedException {
         prontos.countDown();
         assertTrue(largada.await(5, TimeUnit.SECONDS));
@@ -255,18 +255,18 @@ class AgendamentoTest {
         assertEquals(mensagem, erro.getReason());
     }
 
-    private String paciente() {
+    private Long paciente() {
         return usuario("PACIENTE");
     }
 
-    private String usuario(String perfil) {
+    private Long usuario(String perfil) {
         var usuario = new Usuario();
         usuario.setNome("Paciente de teste");
         usuario.setEmail(UUID.randomUUID() + "@example.test");
         usuario.setSenhaHash("fixture-sem-login-por-senha");
         usuario.setPerfil(perfil);
         usuarios.save(usuario);
-        return usuario.getEmail();
+        return usuario.getId();
     }
 
     private void agora(Instant instante) {
@@ -281,7 +281,7 @@ class AgendamentoTest {
         return new AgendamentoDto.Reserva(data, HORA, "ana");
     }
 
-    private String bearer(String email) {
-        return "Bearer " + jwt.gerarToken(email);
+    private String bearer(Long id) {
+        return "Bearer " + jwt.gerarToken(id, 0);
     }
 }

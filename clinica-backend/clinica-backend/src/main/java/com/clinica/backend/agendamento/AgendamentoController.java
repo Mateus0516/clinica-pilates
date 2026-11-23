@@ -4,7 +4,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import java.security.Principal;
+import com.clinica.backend.service.JwtService.Identidade;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.List;
@@ -60,15 +61,15 @@ class AgendamentoController {
     @ApiResponse(responseCode = "404", description = "Instrutor inexistente")
     @ApiResponse(responseCode = "409", description = "Sem vaga, sem saldo ou já existe reserva para o dia")
     @ApiResponse(responseCode = "422", description = "A aula já passou ou começou")
-    AgendamentoDto.Agendamento reservar(Principal paciente, @RequestBody AgendamentoDto.Reserva pedido) {
-        return servico.reservar(paciente.getName(), pedido);
+    AgendamentoDto.Agendamento reservar(@AuthenticationPrincipal Identidade paciente, @RequestBody AgendamentoDto.Reserva pedido) {
+        return servico.reservar(paciente.id(), pedido);
     }
 
     @GetMapping("/agendamentos")
     @ApiResponse(responseCode = "200", description = "Consulta realizada")
     @Operation(summary = "Lista os agendamentos futuros do paciente autenticado")
-    List<AgendamentoDto.Agendamento> reservas(Principal paciente) {
-        return servico.consultarReservas(paciente.getName(), false);
+    List<AgendamentoDto.Agendamento> reservas(@AuthenticationPrincipal Identidade paciente) {
+        return servico.consultarReservas(paciente.id(), false);
     }
 
     @PostMapping("/agendamentos/{id}/cancelamento")
@@ -76,8 +77,8 @@ class AgendamentoController {
     @Operation(summary = "Cancela uma reserva própria e devolve a sessão com pelo menos seis horas de antecedência")
     @ApiResponse(responseCode = "404", description = "Reserva não encontrada")
     @ApiResponse(responseCode = "409", description = "A reserva já foi cancelada ou a aula começou")
-    AgendamentoDto.Agendamento cancelar(Principal paciente, @PathVariable Long id) {
-        return servico.cancelar(paciente.getName(), id);
+    AgendamentoDto.Agendamento cancelar(@AuthenticationPrincipal Identidade paciente, @PathVariable Long id) {
+        return servico.cancelar(paciente.id(), id);
     }
 
     @PutMapping("/agendamentos/{id}/intencao-presenca")
@@ -85,22 +86,22 @@ class AgendamentoController {
     @Operation(summary = "Confirma a intenção de comparecer, sem registrar comparecimento profissional")
     @ApiResponse(responseCode = "404", description = "Reserva não encontrada")
     @ApiResponse(responseCode = "409", description = "A reserva já foi cancelada ou a aula começou")
-    AgendamentoDto.Agendamento confirmar(Principal paciente, @PathVariable Long id) {
-        return servico.confirmarIntencao(paciente.getName(), id);
+    AgendamentoDto.Agendamento confirmar(@AuthenticationPrincipal Identidade paciente, @PathVariable Long id) {
+        return servico.confirmarIntencao(paciente.id(), id);
     }
 
     @GetMapping("/agendamentos/historico")
     @ApiResponse(responseCode = "200", description = "Consulta realizada")
     @Operation(summary = "Lista as aulas encerradas e as reservas canceladas do paciente")
-    List<AgendamentoDto.Agendamento> historico(Principal paciente) {
-        return servico.consultarReservas(paciente.getName(), true);
+    List<AgendamentoDto.Agendamento> historico(@AuthenticationPrincipal Identidade paciente) {
+        return servico.consultarReservas(paciente.id(), true);
     }
 
     @GetMapping("/sessoes/saldo")
     @ApiResponse(responseCode = "200", description = "Consulta realizada")
     @Operation(summary = "Consulta o saldo de sessões do paciente autenticado")
-    AgendamentoDto.Saldo saldo(Principal paciente) {
-        return servico.consultarSaldo(paciente.getName());
+    AgendamentoDto.Saldo saldo(@AuthenticationPrincipal Identidade paciente) {
+        return servico.consultarSaldo(paciente.id());
     }
 
     @ExceptionHandler(ResponseStatusException.class)

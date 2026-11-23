@@ -15,6 +15,7 @@ import com.clinica.backend.model.Usuario;
 import com.clinica.backend.repository.UsuarioRepository;
 import com.clinica.backend.service.AuthService;
 import com.clinica.backend.service.JwtService;
+import com.clinica.backend.service.PerfilService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
@@ -39,7 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AuthController.class)
-@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class, AuthService.class})
+@Import({SecurityConfig.class, JwtAuthenticationFilter.class, JwtService.class, AuthService.class, PerfilService.class})
 class AuthSecurityTest {
     private static final String JWT_TEST_SECRET = UUID.randomUUID().toString();
 
@@ -76,7 +77,8 @@ class AuthSecurityTest {
                         .header(HttpHeaders.AUTHORIZATION, "Bearer invalid"))
                 .andExpect(status().isUnauthorized());
         String expiredToken = Jwts.builder()
-                .subject("paciente@example.test")
+                .subject("1")
+                .claim("cv", 0L)
                 .expiration(Date.from(Instant.now().minusSeconds(60)))
                 .signWith(Keys.hmacShaKeyFor(JWT_TEST_SECRET.getBytes(StandardCharsets.UTF_8)))
                 .compact();
@@ -99,6 +101,7 @@ class AuthSecurityTest {
             Usuario usuario = invocation.getArgument(0);
             ReflectionTestUtils.setField(usuario, "id", 1L);
             when(repository.findByEmail(usuario.getEmail())).thenReturn(Optional.of(usuario));
+            when(repository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
             return usuario;
         });
 
@@ -141,13 +144,24 @@ class AuthSecurityTest {
                 .andExpect(jsonPath("$.dataNascimento").value("2000-01-02"));
     }
 
+    @Test
+    void rejeitaTokenLegadoBaseadoEmEmail() throws Exception {
+        String legado = Jwts.builder()
+                .subject("paciente@example.test")
+                .expiration(Date.from(Instant.now().plusSeconds(60)))
+                .signWith(Keys.hmacShaKeyFor(JWT_TEST_SECRET.getBytes(StandardCharsets.UTF_8)))
+                .compact();
+        mvc.perform(get("/auth/me").header(HttpHeaders.AUTHORIZATION, "Bearer " + legado))
+                .andExpect(status().isUnauthorized());
+    }
+
     private String tokenFor(String role) {
         Usuario usuario = new Usuario();
         ReflectionTestUtils.setField(usuario, "id", 1L);
         String email = role.toLowerCase(Locale.ROOT) + "@example.test";
         usuario.setEmail(email);
         usuario.setPerfil(role);
-        when(repository.findByEmail(email)).thenReturn(Optional.of(usuario));
-        return jwt.gerarToken(email);
+        when(repository.findById(usuario.getId())).thenReturn(Optional.of(usuario));
+        return jwt.gerarToken(usuario.getId(), usuario.getVersaoCredencial());
     }
 }

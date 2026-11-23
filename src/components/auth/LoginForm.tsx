@@ -93,7 +93,7 @@ export function LoginForm({
             }
             placeholder="••••••••"
             autoComplete="current-password"
-            maxLength={64}
+            maxLength={72}
             className="pr-11"
             required
           />

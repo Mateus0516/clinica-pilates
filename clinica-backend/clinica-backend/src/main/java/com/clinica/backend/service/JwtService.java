@@ -37,35 +37,31 @@ public class JwtService {
         );
     }
 
-    public String gerarToken(String email) {
+    public record Identidade(Long id, long versao) implements java.security.Principal {
+        @Override
+        public String getName() {
+            return id.toString();
+        }
+    }
+
+    public String gerarToken(Long id, long versao) {
         return Jwts.builder()
-                .subject(email)
+                .subject(id.toString())
+                .claim("cv", versao)
                 .issuedAt(new Date())
-                .expiration(new Date(
-                        System.currentTimeMillis()
-                                + EXPIRACAO
-                ))
+                .expiration(new Date(System.currentTimeMillis() + EXPIRACAO))
                 .signWith(chave)
                 .compact();
     }
 
-    public String extrairEmail(String token) {
-        Claims claims = Jwts.parser()
-                .verifyWith(chave)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-
-        return claims.getSubject();
-    }
-
-    public boolean validarToken(String token) {
+    public java.util.Optional<Identidade> verificar(String token) {
         try {
-            extrairEmail(token);
-            return true;
-        } catch (io.jsonwebtoken.JwtException
-                 | IllegalArgumentException e) {
-            return false;
+            Claims claims = Jwts.parser().verifyWith(chave).build().parseSignedClaims(token).getPayload();
+            Long versao = claims.get("cv", Long.class);
+            if (versao == null) return java.util.Optional.empty();
+            return java.util.Optional.of(new Identidade(Long.valueOf(claims.getSubject()), versao));
+        } catch (io.jsonwebtoken.JwtException | IllegalArgumentException e) {
+            return java.util.Optional.empty();
         }
     }
 }

@@ -27,5 +27,6 @@ export async function apiRequest<T>(
     throw new ApiError(response.status, typeof body?.erro === "string" ? body.erro : undefined);
   }
 
+  if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }

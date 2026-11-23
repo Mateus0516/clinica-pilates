@@ -10,6 +10,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.clinica.backend.model.Usuario;
 import com.clinica.backend.repository.UsuarioRepository;
@@ -78,7 +79,7 @@ public class AuthService {
         }
 
         String token = jwtService.gerarToken(
-                usuario.getEmail()
+                usuario.getId(), usuario.getVersaoCredencial()
         );
 
         Map<String, Object> resposta = new HashMap<>();
@@ -108,6 +109,7 @@ public class AuthService {
         return usuarioRepository.findAll();
     }
 
+    @Transactional
     public Usuario atualizarUsuario(
             Long id,
             String nome,
@@ -116,7 +118,7 @@ public class AuthService {
             LocalDate dataNascimento
     ) {
         Usuario usuario = usuarioRepository
-                .findById(id)
+                .bloquearPorId(id)
                 .orElseThrow(
                         () -> new RuntimeException(
                                 "Usuário não encontrado"

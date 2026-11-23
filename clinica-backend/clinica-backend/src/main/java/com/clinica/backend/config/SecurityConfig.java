@@ -107,6 +107,7 @@ public class SecurityConfig {
                     ).hasRole("ADMIN")
 
                     // Demais endpoints exigem autenticação
+                    .requestMatchers(HttpMethod.PUT, "/auth/me", "/auth/me/senha", "/auth/me/preferencias").hasRole("PACIENTE")
                     .requestMatchers("/aulas", "/aulas/**", "/agendamentos", "/agendamentos/**",
                             "/sessoes", "/sessoes/**").hasRole("PACIENTE")
                     .anyRequest().authenticated()

@@ -9,7 +9,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.server.ResponseStatusException;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import com.clinica.backend.service.JwtService.Identidade;
+import com.clinica.backend.service.PerfilService;
+import com.clinica.backend.service.PerfilService.Endereco;
+import com.clinica.backend.service.PerfilService.Preferencias;
 import org.springframework.web.bind.annotation.*;
 
 import com.clinica.backend.model.Usuario;
@@ -26,13 +33,15 @@ public class AuthController {
 
     private final AuthService authService;
     private final UsuarioRepository usuarioRepository;
+    private final PerfilService perfilService;
 
     public AuthController(
             AuthService authService,
-            UsuarioRepository usuarioRepository
+            UsuarioRepository usuarioRepository, PerfilService perfilService
     ) {
         this.authService = authService;
         this.usuarioRepository = usuarioRepository;
+        this.perfilService = perfilService;
     }
 
     @Operation(
@@ -70,37 +79,54 @@ public class AuthController {
         );
     }
 
-    // NOVO ENDPOINT DEFINITIVO
-    @Operation(
-        summary = "Consultar usuário autenticado",
-        description = "Retorna os dados do usuário identificado pelo token JWT."
-    )
+    @Operation(summary = "Consultar usuário autenticado", security = @SecurityRequirement(name = "bearerAuth"))
     @GetMapping("/me")
-    public ResponseEntity<UsuarioResponse> consultarMeuPerfil(
-            Authentication authentication
-    ) {
-        String email = authentication.getName();
+    public UsuarioResponse consultarMeuPerfil(@AuthenticationPrincipal Identidade identidade) {
+        Usuario usuario = usuarioRepository.findById(identidade.id())
+                .filter(conta -> conta.getVersaoCredencial() == identidade.versao())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Sessão inválida."));
+        return dadosPessoais(usuario);
+    }
 
-        Usuario usuario = usuarioRepository
-                .findByEmail(email)
-                .orElseThrow(() ->
-                        new org.springframework.web.server
-                                .ResponseStatusException(
-                                    org.springframework.http.HttpStatus.NOT_FOUND,
-                                    "Usuário não encontrado"
-                                )
-                );
+    @Operation(summary = "Atualizar dados pessoais do paciente", security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/me")
+    public UsuarioResponse atualizarMeuPerfil(@AuthenticationPrincipal Identidade identidade,
+            @RequestBody AtualizarPerfilRequest request) {
+        return dadosPessoais(perfilService.atualizar(
+                identidade, request.nome(), request.email(), request.telefone(), request.dataNascimento(), request.endereco()));
+    }
 
-        UsuarioResponse response = new UsuarioResponse(
-                usuario.getId(),
-                usuario.getNome(),
-                usuario.getEmail(),
-                usuario.getTelefone(),
-                usuario.getDataNascimento(),
-                usuario.getPerfil()
-        );
+    @Operation(summary = "Salvar preferências de comunicação do paciente",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/me/preferencias")
+    public UsuarioResponse atualizarPreferencias(@AuthenticationPrincipal Identidade identidade,
+            @RequestBody Preferencias request) {
+        return dadosPessoais(perfilService.atualizarPreferencias(identidade, request));
+    }
 
-        return ResponseEntity.ok(response);
+    public record AtualizarPerfilRequest(
+            String nome, String email, String telefone, LocalDate dataNascimento, Endereco endereco
+    ) {}
+
+    @Operation(summary = "Alterar senha do paciente e revogar tokens anteriores",
+            security = @SecurityRequirement(name = "bearerAuth"))
+    @PutMapping("/me/senha")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void alterarMinhaSenha(@AuthenticationPrincipal Identidade identidade, @RequestBody SenhaRequest request) {
+        perfilService.trocarSenha(identidade, request.senhaAtual(), request.novaSenha(), request.confirmacaoNovaSenha());
+    }
+
+    public record SenhaRequest(
+            @io.swagger.v3.oas.annotations.media.Schema(format = "password") String senhaAtual,
+            @io.swagger.v3.oas.annotations.media.Schema(format = "password") String novaSenha,
+            @io.swagger.v3.oas.annotations.media.Schema(format = "password") String confirmacaoNovaSenha
+    ) {}
+
+    private static UsuarioResponse dadosPessoais(Usuario usuario) {
+        return new UsuarioResponse(usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getTelefone(),
+                usuario.getDataNascimento(), usuario.getPerfil(),
+                new Endereco(usuario.getEndereco(), usuario.getBairro(), usuario.getCidade(), usuario.getEstado(), usuario.getCep()),
+                new Preferencias(usuario.getPrefereEmail(), usuario.getPrefereWhatsapp(), usuario.getPreferePush()));
     }
 
     @Operation(
@@ -156,7 +182,9 @@ public class AuthController {
             String email,
             String telefone,
             LocalDate dataNascimento,
-            String perfil
+            String perfil,
+            Endereco endereco,
+            Preferencias preferencias
     ) {}
 
     public record CadastroRequest(
