@@ -1,7 +1,7 @@
 import { logout, requirePatient } from "@/lib/auth";
 
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import {
   ArrowLeft,
   CalendarDays,
@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 
 import { PatientLayout } from "@/components/layout/PatientLayout";
-import { getSession } from "@/lib/clinic-store";
 
 export const Route = createFileRoute("/central-ajuda")({
   ssr: false,
@@ -26,51 +25,109 @@ const perguntas = [
   {
     pergunta: "Como faço para agendar uma aula?",
     resposta:
-      "Acesse Agenda, escolha um dia e horário disponível e confirme seu agendamento.",
+      "Na Agenda, escolha uma data, um horário futuro com vaga e um instrutor. Confirme a reserva para usar uma sessão do seu saldo. Você pode ter uma reserva ativa por dia.",
     icon: CalendarDays,
+    destino: "/agenda",
+    link: "Abrir Agenda",
+  },
+  {
+    pergunta: "Como consultar a disponibilidade de horários?",
+    resposta:
+      "Selecione uma data na Agenda e use os filtros de período e profissional. As aulas são oferecidas de segunda a sábado, com até três vagas por horário e instrutor. A disponibilidade pode mudar até a confirmação da reserva.",
+    icon: CalendarDays,
+    destino: "/agenda",
+    link: "Consultar horários",
   },
   {
     pergunta: "Como cancelar uma aula?",
     resposta:
-      "Acesse Minhas aulas, encontre seu agendamento e selecione a opção de cancelamento.",
+      "Em Minhas aulas, selecione uma reserva que ainda não começou, clique em Cancelar aula e confirme. O cancelamento e o resultado da devolução da sessão aparecem no Histórico.",
     icon: Clock3,
+    destino: "/aulas",
+    link: "Abrir Minhas aulas",
   },
   {
     pergunta: "Quando minha sessão é devolvida?",
     resposta:
-      "Cancelamentos realizados com pelo menos 6 horas de antecedência devolvem a sessão. Com menos de 6 horas, a sessão não é devolvida.",
+      "Ao cancelar com pelo menos 6 horas de antecedência em relação ao início da aula, a sessão volta ao saldo. Com menos de 6 horas, você ainda pode cancelar antes do início, mas a sessão não é devolvida.",
     icon: Clock3,
+    destino: "/historico",
+    link: "Abrir Histórico",
   },
   {
     pergunta: "Onde posso consultar meu plano?",
     resposta:
-      "Acesse Perfil e selecione Meus planos ou Ver detalhes do plano.",
+      "Em Meus planos você encontra o plano vigente e as contratações anteriores. Em Detalhes do plano você pode consultar valor, periodicidade, benefícios, vigência e uso das sessões do plano.",
     icon: CreditCard,
+    destino: "/meus-planos",
+    link: "Abrir Meus planos",
+  },
+  {
+    pergunta: "Como contratar ou renovar um plano?",
+    resposta:
+      "Escolha uma oferta em Meus planos quando estiver sem plano vigente e sem pedido pendente. A renovação fica disponível em Detalhes do plano a partir do vencimento, conforme a oferta disponível. Conclua o pagamento simulado para iniciar a vigência e receber as sessões.",
+    icon: CreditCard,
+    destino: "/detalhes-plano",
+    link: "Abrir Detalhes do plano",
+  },
+  {
+    pergunta: "Como funciona o pagamento simulado?",
+    resposta:
+      "Em Gerenciar pagamentos, escolha PIX ou cartão simulado e confirme a simulação. É um fluxo acadêmico, sem cobrança real e sem dados bancários. O comprovante simulado fica no histórico de pagamentos.",
+    icon: CreditCard,
+    destino: "/gerenciar-pagamentos",
+    link: "Abrir Gerenciar pagamentos",
+  },
+  {
+    pergunta: "Como consultar meu saldo e as sessões utilizadas?",
+    resposta:
+      "O Dashboard mostra seu saldo disponível para novas reservas. Detalhes do plano mostra o uso das sessões daquela contratação. O saldo geral pode incluir créditos anteriores, que continuam disponíveis após o vencimento do plano.",
+    icon: CalendarDays,
+    destino: "/dashboard",
+    link: "Consultar saldo no Dashboard",
   },
   {
     pergunta: "Como consultar minhas aulas?",
     resposta:
-      "Acesse Minhas aulas para visualizar seus agendamentos ou Histórico para consultar aulas anteriores.",
+      "Minhas aulas mostra as próximas reservas e permite confirmar a intenção de comparecer. Essa confirmação é feita pelo paciente. O Histórico reúne aulas cujo horário já começou e reservas canceladas.",
     icon: CalendarDays,
+    destino: "/aulas",
+    link: "Consultar próximas aulas",
   },
   {
-    pergunta: "Como atualizar meus dados?",
+    pergunta: "Como atualizar meus dados ou alterar a senha?",
     resposta:
-      "Acesse Perfil, altere as informações disponíveis e clique em Salvar alterações.",
+      "No Perfil, edite seus dados ou endereço e clique em Salvar alterações. Para trocar a senha, abra Segurança, informe a senha atual e confirme a nova. Depois da troca, entre novamente nas suas sessões.",
     icon: CircleHelp,
+    destino: "/perfil",
+    link: "Abrir Perfil",
   },
-];
+  {
+    pergunta: "Onde vejo minhas notificações internas?",
+    resposta:
+      "Abra Notificações pela sidebar ou pelo sino do Dashboard. A caixa reúne avisos de reservas, cancelamentos, aulas próximas, pagamentos simulados e atualizações de plano. Você pode filtrar, marcar como lidas e excluir notificações.",
+    icon: MessageCircle,
+    destino: "/notificacoes",
+    link: "Abrir Notificações",
+  },
+  {
+    pergunta: "Como altero minhas preferências de comunicação?",
+    resposta:
+      "No Perfil, use Preferências de comunicação para salvar suas escolhas de e-mail, WhatsApp e push. Os avisos internos continuam na caixa de Notificações. Esses canais externos ainda não enviam mensagens pelo Timely.",
+    icon: Mail,
+    destino: "/perfil",
+    link: "Abrir preferências no Perfil",
+  },
+] as const;
+
+function normalizarBusca(texto: string) {
+  return texto.normalize("NFD").replace(/\p{M}/gu, "").toLocaleLowerCase("pt-BR");
+}
 
 function CentralAjudaPage() {
   const navigate = useNavigate();
   const [busca, setBusca] = useState("");
   const [aberta, setAberta] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!getSession()) {
-      navigate({ to: "/paciente", replace: true });
-    }
-  }, [navigate]);
 
   const handleLogout = () => {
     logout();
@@ -98,22 +155,20 @@ function CentralAjudaPage() {
     navigate({ to: routes[section] });
   };
 
+  const termos = normalizarBusca(busca).trim().split(/\s+/).filter(Boolean);
   const filtradas = perguntas
     .map((item, index) => ({ ...item, index }))
-    .filter(
-      (item) =>
-        item.pergunta.toLowerCase().includes(busca.toLowerCase()) ||
-        item.resposta.toLowerCase().includes(busca.toLowerCase()),
-    );
-
-  if (!getSession()) return null;
+    .filter((item) => {
+      const conteudo = normalizarBusca(`${item.pergunta} ${item.resposta}`);
+      return termos.every((termo) => conteudo.includes(termo));
+    });
 
   return (
     <PatientLayout
       onLogout={handleLogout}
       onNavigate={handleNavigation}
     >
-      <div className="mx-auto max-w-6xl space-y-8">
+      <div className="mx-auto max-w-6xl space-y-8 max-sm:[overflow-wrap:anywhere]">
         <div>
           <button
             type="button"
@@ -138,7 +193,7 @@ function CentralAjudaPage() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm max-sm:px-3">
           <h2 className="text-xl font-bold text-slate-950">
             Como podemos ajudar?
           </h2>
@@ -147,6 +202,7 @@ function CentralAjudaPage() {
             <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
               type="search"
+              aria-label="Pesquisar perguntas frequentes"
               value={busca}
               onChange={(event) => setBusca(event.target.value)}
               placeholder="Pesquise sua dúvida..."
@@ -155,7 +211,7 @@ function CentralAjudaPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm max-sm:px-3">
           <h2 className="mb-5 text-xl font-bold text-slate-950">
             Perguntas frequentes
           </h2>
@@ -173,14 +229,15 @@ function CentralAjudaPage() {
                   <button
                     type="button"
                     aria-expanded={expanded}
+                    aria-controls={`faq-resposta-${item.index}`}
                     onClick={() =>
                       setAberta(expanded ? null : item.index)
                     }
-                    className="flex w-full items-center gap-3 p-4 text-left"
+                    className="flex w-full items-center gap-3 p-4 text-left max-sm:gap-1.5 max-sm:px-2"
                   >
                     <Icon className="h-5 w-5 shrink-0 text-primary" />
 
-                    <span className="flex-1 font-semibold text-slate-900">
+                    <span className="min-w-0 flex-1 font-semibold text-slate-900">
                       {item.pergunta}
                     </span>
 
@@ -189,35 +246,40 @@ function CentralAjudaPage() {
                     </span>
                   </button>
 
-                  {expanded && (
-                    <p className="border-t border-slate-100 px-4 py-4 text-sm leading-6 text-slate-600">
-                      {item.resposta}
-                    </p>
-                  )}
+                  <div
+                    id={`faq-resposta-${item.index}`}
+                    hidden={!expanded}
+                    className="border-t border-slate-100 px-4 py-4 text-sm leading-6 text-slate-600 max-sm:px-2"
+                  >
+                    <p>{item.resposta}</p>
+                    <Link to={item.destino} className="mt-2 inline-block font-medium text-primary hover:underline">
+                      {item.link}
+                    </Link>
+                  </div>
                 </div>
               );
             })}
 
             {filtradas.length === 0 && (
-              <p className="py-6 text-center text-slate-500">
+              <p role="status" className="py-6 text-center text-slate-500">
                 Nenhuma pergunta encontrada.
               </p>
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-sky-100 bg-white p-6 shadow-sm max-sm:px-3">
           <h2 className="text-xl font-bold text-slate-950">
             Ainda precisa de ajuda?
           </h2>
 
           <p className="mt-2 text-sm text-slate-600">
-            Entre em contato com a clínica para receber
-            atendimento.
+            Os contatos oficiais ainda não estão cadastrados no Timely.
+            Confirme os canais de atendimento diretamente com a clínica.
           </p>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-4 max-sm:gap-2 max-sm:px-2">
               <MessageCircle className="h-7 w-7 text-emerald-600" />
               <div>
                 <p className="font-semibold text-slate-900">
@@ -229,7 +291,7 @@ function CentralAjudaPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-4">
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 p-4 max-sm:gap-2 max-sm:px-2">
               <Mail className="h-7 w-7 text-primary" />
               <div>
                 <p className="font-semibold text-slate-900">
