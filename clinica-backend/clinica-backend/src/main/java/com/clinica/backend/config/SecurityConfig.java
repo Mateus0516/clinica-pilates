@@ -107,6 +107,8 @@ public class SecurityConfig {
                     ).hasRole("ADMIN")
 
                     // Demais endpoints exigem autenticação
+                    .requestMatchers("/aulas", "/aulas/**", "/agendamentos", "/agendamentos/**",
+                            "/sessoes", "/sessoes/**").hasRole("PACIENTE")
                     .anyRequest().authenticated()
             )
 
