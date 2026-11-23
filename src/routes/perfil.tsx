@@ -1,3 +1,4 @@
+import { displayDate, planProgress, useContracts } from "@/lib/plans";
 import { changePatientPassword, getPatient, logout, requirePatient, updatePatient, updateCommunicationPreferences, type CommunicationPreferences } from "@/lib/auth";
 import {
   createFileRoute,
@@ -77,6 +78,9 @@ function ProfilePage() {
   const [savingPassword, setSavingPassword] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const balance = useSessionBalance();
+  const contracts = useContracts();
+  const currentPlan = contracts.data?.atual;
+  const { used: usedPlanSessions, percentage: planPercentage } = planProgress(currentPlan);
   const history = useAppointmentHistory();
   const sessionsRemaining = balance.data?.sessoesDisponiveis;
   const completedClasses = history.data?.filter((booking) => booking.status === "ENCERRADO").length;
@@ -604,12 +608,12 @@ function ProfilePage() {
 
               <div className="mt-6">
                 <p className="font-bold text-slate-950">
-                  Plano: indisponível
+                  {currentPlan?.plano.nome ?? "Nenhum plano ativo"}
                 </p>
 
                 <p className="mt-1 text-sm text-slate-500">
                   Próxima renovação:{" "}
-                  —
+                  {displayDate(currentPlan?.vencimento)}
                 </p>
               </div>
 
@@ -636,14 +640,15 @@ function ProfilePage() {
               </div>
 
               <div className="mt-6 h-2 overflow-hidden rounded-full bg-slate-100">
-                <span className="sr-only">Progresso do plano indisponível</span>
+                <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${planPercentage}%` }} />
               </div>
 
               <p className="mt-3 text-sm text-slate-500">
-                — de — sessões utilizadas
+                {usedPlanSessions ?? "—"} de {currentPlan?.plano.sessoes ?? "—"} sessões utilizadas
               </p>
 
               <SchedulingFeedback query={balance} />
+              <SchedulingFeedback query={contracts} />
 
               <button
                 type="button"

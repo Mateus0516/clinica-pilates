@@ -98,7 +98,7 @@ function retry(failures: number, error: unknown) {
   return failures < 1 && !(error instanceof ApiError && error.status < 500);
 }
 
-function useSchedulingQuery<T>(parts: string[], path: `/${string}`, interval?: number) {
+export function useSchedulingQuery<T>(parts: string[], path: `/${string}`, interval?: number) {
   const id = getPatient()?.id;
   return useQuery({
     queryKey: [...schedulingKey, id, ...parts],

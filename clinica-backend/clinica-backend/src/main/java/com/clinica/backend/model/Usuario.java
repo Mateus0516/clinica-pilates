@@ -86,6 +86,19 @@ public class Usuario {
         preferePush = push;
     }
 
+    // Null identifica contas anteriores ao catálogo de planos.
+    private Boolean saldoLegado;
+    private String formaPagamentoSimulado;
+
+    public void iniciarSaldoPorPlano() { saldoLegado = false; }
+
+    public boolean temSaldoLegado() { return !Boolean.FALSE.equals(saldoLegado); }
+
+    @JsonIgnore
+    public String getFormaPagamentoSimulado() { return formaPagamentoSimulado; }
+
+    public void setFormaPagamentoSimulado(String forma) { formaPagamentoSimulado = forma; }
+
     public Long getId() {
         return id;
     }

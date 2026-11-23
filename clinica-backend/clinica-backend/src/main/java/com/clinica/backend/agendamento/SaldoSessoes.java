@@ -27,4 +27,5 @@ public class SaldoSessoes {
     int getDisponiveis() { return disponiveis; }
     void descontar() { disponiveis--; }
     void devolver() { disponiveis++; }
+    void creditar(int sessoes) { disponiveis = Math.addExact(disponiveis, sessoes); }
 }

@@ -78,8 +78,8 @@ Content-Type: application/json
 O fuso da clínica é `America/Sao_Paulo`. A grade funciona de segunda a
 sábado com Ana (`ana`) e Bruno (`bruno`), às 07h, 08h, 09h, 10h, 11h, 14h,
 15h, 16h, 17h, 18h e 19h. Cada horário comporta três pacientes por instrutor.
-O paciente pode manter uma reserva ativa por dia. O saldo provisório começa
-em oito sessões até a integração dos planos. Cancelamentos com seis horas
+O paciente pode manter uma reserva ativa por dia. O saldo segue as regras de
+planos e créditos legados descritas abaixo. Cancelamentos com seis horas
 ou mais de antecedência devolvem uma sessão. O histórico preserva a reserva
 cancelada e o campo `sessaoDevolvida`. O campo
 `intencaoPresencaConfirmadaEm` registra a confirmação pelo paciente.
@@ -141,3 +141,42 @@ dígitos. `GET /auth/me` devolve o endereço e as preferências atuais.
 `push` do paciente autenticado. As colunas são anuláveis e usuários existentes
 mantêm o padrão anterior de opções ligadas. Esta API armazena escolhas de
 comunicação e não dispara mensagens.
+
+## Planos e pagamentos simulados
+
+O catálogo vem da tabela `planos`. O script `sql/catalogo-dev.sql` insere uma
+oferta de teste após o Spring criar o esquema. A aplicação não cadastra ofertas
+na inicialização. O catálogo pode ser administrado futuramente sem alterações
+nas regras de contratação. Cada contratação guarda uma cópia da oferta e o
+pagamento guarda o valor da cobrança.
+
+| Método | Rota | Uso |
+|---|---|---|
+| GET | `/planos` | Catálogo disponível |
+| GET | `/planos/contratacoes` | Plano ativo, pedido pendente e histórico |
+| POST | `/planos/contratacoes` | Pedido com `planoCodigo`, `chave` UUID e, para renovação, `renovacaoDeId` |
+| GET | `/pagamentos` | Cobranças e pagamentos do paciente |
+| GET | `/pagamentos/{id}` | Detalhes do registro simulado |
+| GET / PUT | `/pagamentos/metodo` | Preferência simulada de pagamento |
+| POST | `/pagamentos/{id}/simulacao` | Simula aprovação e concede sessões |
+
+As rotas exigem JWT de paciente. Envie `{"forma":"PIX"}` ou
+`{"forma":"CARTAO_CREDITO"}` nas operações de forma de pagamento. Nenhuma
+operação recebe dados bancários. A cobrança inicial fica sem vencimento definido. A cobrança de renovação
+exibe o vencimento da contratação anterior como referência. O pedido
+pendente continua disponível para conclusão e é separado do histórico.
+
+A vigência começa com a confirmação simulada. A renovação pode ser solicitada
+a partir do vencimento, usando a oferta então disponível. Somente um pedido
+pendente ou plano vigente pode existir por paciente. A chave do pedido e o
+bloqueio do paciente tornam reenvios e confirmações concorrentes seguros.
+O segundo envio de uma confirmação paga retorna o registro existente.
+
+A atualização do esquema preserva os saldos persistidos e as reservas.
+Contas preexistentes sem saldo materializado continuam com oito sessões.
+Contas cadastradas após a atualização começam com zero. Os créditos aprovados
+somam ao saldo e não expiram. Agendamentos consomem primeiro o saldo legado e
+depois o crédito da contratação mais antiga disponível. Uma devolução de
+agendamento retorna ao mesmo crédito. Isso permite exibir o progresso real de
+cada contratação sem misturar o saldo geral com as sessões do plano atual.
+Cancelamento comercial e estorno não fazem parte do fluxo.

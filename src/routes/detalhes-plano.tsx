@@ -1,3 +1,7 @@
+import { displayDate, planDisplay, planProgress, useContracts, usePlanCatalog, usePlanOrder } from "@/lib/plans";
+import { Toaster } from "sonner";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { useSessionBalance } from "@/lib/scheduling";
 import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
@@ -129,45 +133,31 @@ function PlanDetailsPage() {
     }
   };
 
+  const balance = useSessionBalance();
+  const contracts = useContracts();
+  const catalog = usePlanCatalog();
+  const order = usePlanOrder();
   if (!ready || !student) {
     return null;
   }
 
-  /*
-   * Dados temporários do protótipo.
-   *
-   * Quando conectarmos esta página ao backend,
-   * essas informações virão do plano/pacote
-   * cadastrado pela clínica.
-   */
-  const plan = {
-    name: "Plano Mensal",
-    status: "Ativo",
-    totalSessions: 16,
-    renewalDate: "10/10/2026",
-    startDate: "10/09/2026",
-    duration: "Mensal",
-    service: "Pilates",
-  };
-
-  const usedSessions = Math.max(
-    plan.totalSessions -
-      student.sessionsRemaining,
-    0,
-  );
-
-  const usedPercentage = Math.min(
-    (usedSessions /
-      plan.totalSessions) *
-      100,
-    100,
-  );
+  const current = contracts.data?.atual;
+  const pending = contracts.data?.pendente;
+  const previous = contracts.data?.historico[0];
+  const selected = current ?? pending ?? previous;
+  const plan = planDisplay(selected);
+  const { used: usedSessions, percentage: usedPercentage } = planProgress(selected);
+  const renewalOffer = catalog.data?.find((offer) => offer.codigo === previous?.plano.codigo);
 
   return (
     <PatientLayout
       onLogout={handleLogout}
       onNavigate={handleNavigation}
     >
+      <Toaster richColors position="top-center" />
+      <SchedulingFeedback query={contracts} />
+      <SchedulingFeedback query={balance} />
+      <SchedulingFeedback query={catalog} />
       <div className="mx-auto max-w-7xl">
         {/* VOLTAR */}
         <button
@@ -254,7 +244,7 @@ function PlanDetailsPage() {
                   <PlanInformation
                     icon={Clock3}
                     label="Periodicidade"
-                    value={plan.duration}
+                    value={plan.periodicity}
                   />
                 </div>
               </div>
@@ -282,7 +272,7 @@ function PlanDetailsPage() {
 
                   <p className="mt-1 text-2xl font-bold text-slate-950">
                     {
-                      student.sessionsRemaining
+                      (selected?.status !== "PENDENTE" ? selected?.sessoesDisponiveis : undefined) ?? "—"
                     }
                   </p>
                 </div>
@@ -295,8 +285,8 @@ function PlanDetailsPage() {
                   </span>
 
                   <span className="font-semibold text-slate-950">
-                    {usedSessions} de{" "}
-                    {plan.totalSessions}
+                    {usedSessions ?? "—"} de{" "}
+                    {plan.totalSessions ?? "—"}
                   </span>
                 </div>
 
@@ -313,19 +303,19 @@ function PlanDetailsPage() {
                   <SessionSummary
                     label="Total"
                     value={
-                      plan.totalSessions
+                      plan.totalSessions ?? "—"
                     }
                   />
 
                   <SessionSummary
                     label="Utilizadas"
-                    value={usedSessions}
+                    value={usedSessions ?? "—"}
                   />
 
                   <SessionSummary
                     label="Disponíveis"
                     value={
-                      student.sessionsRemaining
+                      (selected?.status !== "PENDENTE" ? selected?.sessoesDisponiveis : undefined) ?? "—"
                     }
                   />
                 </div>
@@ -364,14 +354,18 @@ function PlanDetailsPage() {
 
                 <InformationRow
                   label="Quantidade de sessões"
-                  value={`${plan.totalSessions} sessões`}
+                  value={`${plan.totalSessions ?? "—"} sessões`}
                 />
 
                 <InformationRow
                   label="Periodicidade"
-                  value={plan.duration}
+                  value={plan.periodicity}
                 />
 
+                <InformationRow label="Valor" value={plan.price} />
+                <InformationRow label="Contratação" value={displayDate(selected?.contratadoEm)} />
+                <InformationRow label="Vencimento" value={plan.renewalDate} />
+                <InformationRow label="Benefícios" value={selected?.plano.beneficios.join(" · ") || "—"} />
                 <InformationRow
                   label="Status"
                   value={plan.status}
@@ -393,8 +387,7 @@ function PlanDetailsPage() {
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                Você possui um plano ativo para{" "}
-                {plan.service.toLowerCase()}.
+                {current ? `Você possui um plano ativo para ${plan.service.toLowerCase()}.` : plan.status}
               </p>
 
               <div className="my-6 border-t border-slate-100" />
@@ -405,7 +398,7 @@ function PlanDetailsPage() {
                 </p>
 
                 <p className="mt-1 text-3xl font-bold text-slate-950">
-                  {student.sessionsRemaining}
+                  {(balance.data?.sessoesDisponiveis ?? "—")}
                 </p>
               </div>
 
@@ -440,6 +433,16 @@ function PlanDetailsPage() {
                 </div>
               </div>
             </Card>
+
+            {!current && !pending && previous && renewalOffer && (
+              <button type="button" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                disabled={order.isPending}
+                onClick={() => order.mutate({ planoCodigo: previous.plano.codigo, renovacaoDeId: previous.id }, {
+                  onSuccess: () => void navigate({ to: "/gerenciar-pagamentos" }),
+                })}>Renovar plano</button>
+            )}
+            {pending && <button type="button" className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"
+              onClick={() => void navigate({ to: "/gerenciar-pagamentos" })}>Concluir pagamento simulado</button>}
 
             {/* VOLTAR PARA PLANOS */}
             <button
@@ -495,7 +498,7 @@ function SessionSummary({
   value,
 }: {
   label: string;
-  value: number;
+  value: number | string;
 }) {
   return (
     <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">

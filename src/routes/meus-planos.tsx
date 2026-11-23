@@ -1,3 +1,7 @@
+import { displayDate, money, periodicity, planDisplay, planProgress, useContracts, usePlanCatalog, usePlanOrder } from "@/lib/plans";
+import { Toaster } from "sonner";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { useSessionBalance } from "@/lib/scheduling";
 import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
@@ -130,63 +134,31 @@ function MyPlansPage() {
     }
   };
 
+  const balance = useSessionBalance();
+  const contracts = useContracts();
+  const catalog = usePlanCatalog();
+  const order = usePlanOrder();
   if (!ready || !student) {
     return null;
   }
 
-  /*
-   * Dados temporários.
-   *
-   * Quando conectarmos o backend,
-   * os planos serão carregados da API.
-   */
-  const currentPlan = {
-    name: "Plano Mensal",
-    service: "Pilates",
-    status: "Ativo",
-    totalSessions: 16,
-    startDate: "10/09/2026",
-    renewalDate: "10/10/2026",
-    periodicity: "Mensal",
-  };
-
-  const previousPlans = [
-    {
-      id: 1,
-      name: "Plano Mensal",
-      service: "Pilates",
-      period: "10/08/2026 a 09/09/2026",
-      sessions: 16,
-      status: "Concluído",
-    },
-    {
-      id: 2,
-      name: "Pacote de 8 sessões",
-      service: "Pilates",
-      period: "10/07/2026 a 09/08/2026",
-      sessions: 8,
-      status: "Concluído",
-    },
-  ];
-
-  const usedSessions = Math.max(
-    currentPlan.totalSessions -
-      student.sessionsRemaining,
-    0,
-  );
-
-  const usedPercentage = Math.min(
-    (usedSessions /
-      currentPlan.totalSessions) *
-      100,
-    100,
-  );
+  const current = contracts.data?.atual;
+  const pending = contracts.data?.pendente;
+  const currentPlan = planDisplay(current ?? pending);
+  const previousPlans = (contracts.data?.historico ?? []).map((contract) => ({
+    id: contract.id, ...planDisplay(contract), sessions: contract.plano.sessoes,
+    period: `${displayDate(contract.inicio)} a ${displayDate(contract.vencimento)}`,
+  }));
+  const { used: usedSessions, percentage: usedPercentage } = planProgress(current);
 
   return (
     <PatientLayout
       onLogout={handleLogout}
       onNavigate={handleNavigation}
     >
+      <Toaster richColors position="top-center" />
+      <SchedulingFeedback query={contracts} />
+      <SchedulingFeedback query={balance} />
       <div className="mx-auto max-w-7xl">
         {/* VOLTAR */}
         <button
@@ -224,8 +196,8 @@ function MyPlansPage() {
           <div className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 font-semibold text-primary">
             <CalendarCheck2 className="h-5 w-5" />
 
-            {student.sessionsRemaining}{" "}
-            {student.sessionsRemaining === 1
+            {(balance.data?.sessoesDisponiveis ?? "—")}{" "}
+            {(balance.data?.sessoesDisponiveis ?? "—") === 1
               ? "sessão disponível"
               : "sessões disponíveis"}
           </div>
@@ -303,9 +275,9 @@ function MyPlansPage() {
                       </p>
 
                       <p className="mt-1 text-sm text-slate-500">
-                        {usedSessions} de{" "}
+                        {usedSessions ?? "—"} de{" "}
                         {
-                          currentPlan.totalSessions
+                          currentPlan.totalSessions ?? "—"
                         }{" "}
                         sessões utilizadas
                       </p>
@@ -318,7 +290,7 @@ function MyPlansPage() {
 
                       <p className="mt-1 text-2xl font-bold text-primary">
                         {
-                          student.sessionsRemaining
+                          current?.sessoesDisponiveis ?? "—"
                         }
                       </p>
                     </div>
@@ -371,6 +343,9 @@ function MyPlansPage() {
               </div>
 
               <div className="mt-6 space-y-4">
+                {contracts.isSuccess && previousPlans.length === 0 && (
+                  <p className="text-sm text-slate-500">Nenhum plano anterior registrado.</p>
+                )}
                 {previousPlans.map(
                   (plan) => (
                     <div
@@ -410,6 +385,33 @@ function MyPlansPage() {
                 )}
               </div>
             </Card>
+
+            <Card className="p-6">
+              <h2 className="text-xl font-bold text-slate-950">Planos disponíveis</h2>
+              <SchedulingFeedback query={catalog} />
+              {catalog.isSuccess && catalog.data.length === 0 && <p className="mt-4 text-sm text-slate-500">Nenhuma oferta disponível.</p>}
+              <div className="mt-4 space-y-4">
+                {catalog.data?.map((offer) => (
+                  <div key={offer.codigo} className="rounded-xl border border-slate-200 p-5">
+                    <h3 className="font-bold text-slate-950">{offer.nome}</h3>
+                    <p className="text-sm text-slate-500">{offer.descricao}</p>
+                    <p className="mt-2 text-sm font-semibold">{money(offer.valor)} · {periodicity(offer.meses)} · {offer.sessoes} sessões</p>
+                    {offer.beneficios.length > 0 && <ul className="mt-2 list-disc pl-5 text-sm text-slate-600">
+                      {offer.beneficios.map((benefit) => <li key={benefit}>{benefit}</li>)}
+                    </ul>}
+                    <button type="button" className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+                      disabled={!contracts.isSuccess || Boolean(current || pending) || order.isPending}
+                      onClick={() => order.mutate({ planoCodigo: offer.codigo }, {
+                        onSuccess: () => void navigate({ to: "/gerenciar-pagamentos" }),
+                      })}>
+                      Contratar plano
+                    </button>
+                  </div>
+                ))}
+              </div>
+              {pending && <button type="button" className="mt-4 text-sm font-semibold text-primary"
+                onClick={() => void navigate({ to: "/gerenciar-pagamentos" })}>Concluir pagamento simulado</button>}
+            </Card>
           </div>
 
           {/* COLUNA LATERAL */}
@@ -439,7 +441,7 @@ function MyPlansPage() {
 
                 <SummaryItem
                   label="Sessões disponíveis"
-                  value={`${student.sessionsRemaining}`}
+                  value={`${(balance.data?.sessoesDisponiveis ?? "—")}`}
                 />
 
                 <SummaryItem

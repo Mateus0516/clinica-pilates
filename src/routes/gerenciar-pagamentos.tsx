@@ -1,3 +1,8 @@
+import { displayDate, methodName, money, planDisplay, useContracts, usePaymentMethod, usePayments, usePaymentSimulation, useSavePaymentMethod, type Payment, type PaymentMethod } from "@/lib/plans";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Toaster } from "sonner";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { useSessionBalance } from "@/lib/scheduling";
 import { logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
@@ -130,68 +135,50 @@ function ManagePaymentsPage() {
     }
   };
 
+  const balance = useSessionBalance();
+  const contracts = useContracts();
+  const payments = usePayments();
+  const method = usePaymentMethod();
+  const simulation = usePaymentSimulation();
+  const saveMethod = useSavePaymentMethod();
+  const [dialog, setDialog] = useState<"method" | "pay" | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>("PIX");
+  const [receipt, setReceipt] = useState<Payment | null>(null);
   if (!ready || !student) {
     return null;
   }
 
-  /*
-   * Dados temporários do protótipo.
-   *
-   * Quando integrarmos o backend, essas
-   * informações virão do banco de dados.
-   */
-  const currentPlan = {
-    name: "Plano Mensal",
-    service: "Pilates",
-    status: "Ativo",
-    price: "R$ 320,00",
-    renewalDate: "10/10/2026",
-  };
-
-  const paymentMethod = {
-    type: "Cartão de crédito",
-    brand: "Mastercard",
-    lastDigits: "4582",
-  };
-
+  const currentPlan = planDisplay(contracts.data?.atual ?? contracts.data?.pendente);
+  const pending = payments.data?.find((payment) => payment.status === "PENDENTE");
+  const paymentHistory = payments.data?.filter((payment) => payment.status === "PAGO") ?? [];
   const currentInvoice = {
-    value: "R$ 320,00",
-    dueDate: "10/10/2026",
-    status: "Pendente",
+    value: money(pending?.valor),
+    dueDate: displayDate(pending?.vencimento),
+    status: pending ? "Pendente" : "Sem cobrança pendente",
   };
 
-  const paymentHistory = [
-    {
-      id: 1,
-      date: "10/09/2026",
-      description: "Plano Mensal",
-      method: "Cartão de crédito",
-      value: "R$ 320,00",
-      status: "Pago",
-    },
-    {
-      id: 2,
-      date: "10/08/2026",
-      description: "Plano Mensal",
-      method: "Cartão de crédito",
-      value: "R$ 320,00",
-      status: "Pago",
-    },
-    {
-      id: 3,
-      date: "10/07/2026",
-      description: "Plano Mensal",
-      method: "PIX",
-      value: "R$ 320,00",
-      status: "Pago",
-    },
-  ];
+  const openDialog = (mode: "method" | "pay") => {
+    setSelectedMethod(method.data?.forma ?? "PIX");
+    setDialog(mode);
+  };
+
+  const confirm = () => {
+    const options = { onSuccess: () => setDialog(null) };
+    if (dialog === "method") saveMethod.mutate(selectedMethod, options);
+    if (dialog === "pay" && pending) simulation.mutate({ id: pending.id, forma: selectedMethod }, options);
+  };
+  const saving = simulation.isPending || saveMethod.isPending;
 
   return (
     <PatientLayout
       onLogout={handleLogout}
       onNavigate={handleNavigation}
     >
+      <Toaster richColors position="top-center" />
+      <SchedulingFeedback query={contracts} />
+      <SchedulingFeedback query={balance} />
+      <SchedulingFeedback query={payments} />
+      <SchedulingFeedback query={method} />
       <div className="mx-auto max-w-7xl">
         {/* VOLTAR */}
         <button
@@ -277,7 +264,7 @@ function ManagePaymentsPage() {
                   </p>
 
                   <p className="mt-1 text-2xl font-bold text-slate-950">
-                    {student.sessionsRemaining}
+                    {(balance.data?.sessoesDisponiveis ?? "—")}
                   </p>
                 </div>
               </Card>
@@ -295,7 +282,7 @@ function ManagePaymentsPage() {
                     </p>
 
                     <h2 className="mt-1 text-xl font-bold text-slate-950">
-                      {paymentMethod.type}
+                      {methodName(method.data?.forma)}
                     </h2>
                   </div>
                 </div>
@@ -305,17 +292,18 @@ function ManagePaymentsPage() {
                 <div className="space-y-4">
                   <InformationRow
                     label="Bandeira"
-                    value={paymentMethod.brand}
+                    value="—"
                   />
 
                   <InformationRow
                     label="Final"
-                    value={`•••• ${paymentMethod.lastDigits}`}
+                    value="—"
                   />
                 </div>
 
                 <button
                   type="button"
+                  onClick={() => openDialog("method")}
                   className="mt-6 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-primary/30 hover:text-primary"
                 >
                   Alterar forma de pagamento
@@ -367,6 +355,11 @@ function ManagePaymentsPage() {
                   value={currentPlan.name}
                 />
               </div>
+              <p className="mt-4 text-sm text-slate-600">Pagamento acadêmico simulado, sem cobrança real.</p>
+              {pending && <button type="button" onClick={() => openDialog("pay")}
+                className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+                Simular pagamento
+              </button>}
             </Card>
 
             {/* HISTÓRICO */}
@@ -409,6 +402,9 @@ function ManagePaymentsPage() {
                   </thead>
 
                   <tbody>
+                    {payments.isSuccess && paymentHistory.length === 0 && (
+                      <tr><td colSpan={5} className="px-6 py-4 text-sm text-slate-600">Nenhum pagamento simulado registrado.</td></tr>
+                    )}
                     {paymentHistory.map(
                       (payment) => (
                         <tr
@@ -416,25 +412,27 @@ function ManagePaymentsPage() {
                           className="border-b border-slate-100 last:border-b-0"
                         >
                           <td className="px-6 py-4 text-sm text-slate-600">
-                            {payment.date}
+                            {displayDate(payment.pagoEm)}
                           </td>
 
                           <td className="px-6 py-4 text-sm font-semibold text-slate-950">
-                            {payment.description}
+                            <button type="button" onClick={() => setReceipt(payment)} className="text-left hover:text-primary">
+                              {payment.plano}
+                            </button>
                           </td>
 
                           <td className="px-6 py-4 text-sm text-slate-600">
-                            {payment.method}
+                            {methodName(payment.forma)}
                           </td>
 
                           <td className="px-6 py-4 text-sm font-semibold text-slate-950">
-                            {payment.value}
+                            {money(payment.valor)}
                           </td>
 
                           <td className="px-6 py-4">
                             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                               <BadgeCheck className="h-3.5 w-3.5" />
-                              {payment.status}
+                              Pago
                             </span>
                           </td>
                         </tr>
@@ -530,6 +528,42 @@ function ManagePaymentsPage() {
           </div>
         </div>
       </div>
+      <Dialog open={dialog !== null} onOpenChange={(open) => { if (!open && !saving) setDialog(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{dialog === "pay" ? "Simular pagamento" : "Alterar forma de pagamento"}</DialogTitle>
+            <DialogDescription>Simulação acadêmica, sem cobrança ou dados bancários.</DialogDescription>
+          </DialogHeader>
+          <label htmlFor="simulated-method" className="text-sm font-medium">Forma de pagamento</label>
+          <select id="simulated-method" className="rounded-lg border p-2" value={selectedMethod} disabled={saving}
+            onChange={(event) => setSelectedMethod(event.target.value === "PIX" ? "PIX" : "CARTAO_CREDITO")}>
+            <option value="PIX">PIX simulado</option>
+            <option value="CARTAO_CREDITO">Cartão de crédito simulado</option>
+          </select>
+          {dialog === "pay" && <p className="text-sm">Valor: {money(pending?.valor)}</p>}
+          <button type="button" disabled={saving} onClick={confirm}
+            className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+            {saving ? "Processando…" : dialog === "pay" ? "Confirmar simulação" : "Salvar forma"}
+          </button>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={receipt !== null} onOpenChange={(open) => { if (!open) setReceipt(null); }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Comprovante simulado</DialogTitle>
+            <DialogDescription>Registro acadêmico, sem valor financeiro.</DialogDescription>
+          </DialogHeader>
+          {receipt && <div className="space-y-3 text-sm">
+            <InformationRow label="Referência" value={String(receipt.id)} />
+            <InformationRow label="Plano" value={receipt.plano} />
+            <InformationRow label="Vencimento" value={displayDate(receipt.vencimento)} />
+            <InformationRow label="Pagamento" value={displayDate(receipt.pagoEm)} />
+            <InformationRow label="Forma de pagamento" value={methodName(receipt.forma)} />
+            <InformationRow label="Valor simulado" value={money(receipt.valor)} />
+          </div>}
+        </DialogContent>
+      </Dialog>
     </PatientLayout>
   );
 }

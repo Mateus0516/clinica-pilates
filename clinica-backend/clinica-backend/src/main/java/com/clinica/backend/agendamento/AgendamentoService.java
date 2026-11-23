@@ -1,6 +1,8 @@
 package com.clinica.backend.agendamento;
 
 import com.clinica.backend.model.Usuario;
+import com.clinica.backend.planos.CreditosPlanoService;
+import com.clinica.backend.planos.ContratacaoPlano;
 import com.clinica.backend.repository.UsuarioRepository;
 import java.time.Clock;
 import java.time.DayOfWeek;
@@ -25,7 +27,6 @@ import static com.clinica.backend.agendamento.AgendamentoConfig.FUSO_CLINICA;
 @Transactional(readOnly = true)
 class AgendamentoService {
     // Provisório até a integração com os planos da clínica.
-    private static final int SALDO_INICIAL = 8;
     private static final int CAPACIDADE = 3;
     private static final Duration ANTECEDENCIA_REEMBOLSO = Duration.ofHours(6);
     private static final List<LocalTime> HORARIOS = List.of(7, 8, 9, 10, 11, 14, 15, 16, 17, 18, 19)
@@ -35,16 +36,18 @@ class AgendamentoService {
     private final InstrutorRepository instrutores;
     private final AulaRepository aulas;
     private final AgendamentoRepository agendamentos;
-    private final SaldoSessoesRepository saldos;
+    private final SaldoSessoesService saldos;
+    private final CreditosPlanoService creditosPlano;
     private final Clock relogio;
 
     AgendamentoService(UsuarioRepository usuarios, InstrutorRepository instrutores, AulaRepository aulas,
-                       AgendamentoRepository agendamentos, SaldoSessoesRepository saldos, Clock relogio) {
+                       AgendamentoRepository agendamentos, SaldoSessoesService saldos, CreditosPlanoService creditosPlano, Clock relogio) {
         this.usuarios = usuarios;
         this.instrutores = instrutores;
         this.aulas = aulas;
         this.agendamentos = agendamentos;
         this.saldos = saldos;
+        this.creditosPlano = creditosPlano;
         this.relogio = relogio;
     }
 
@@ -88,7 +91,7 @@ class AgendamentoService {
             throw conflito("Você já tem um agendamento neste dia.");
         }
 
-        SaldoSessoes saldo = saldoParaReserva(paciente);
+        SaldoSessoes saldo = saldos.obterParaAlterar(paciente);
         if (saldo.getDisponiveis() <= 0) throw conflito("Saldo de sessões insuficiente.");
 
         Aula aula = aulas.findByDataAndHorarioAndInstrutorCodigo(pedido.data(), pedido.horario(), instrutor.getCodigo())
@@ -97,8 +100,9 @@ class AgendamentoService {
             throw conflito("Não há vagas para esta aula.");
         }
 
+        ContratacaoPlano origem = creditosPlano.consumir(pacienteId, saldo.getDisponiveis());
         saldo.descontar();
-        return resposta(agendamentos.save(new Agendamento(aula, paciente, agora)), agora);
+        return resposta(agendamentos.save(new Agendamento(aula, paciente, agora, origem)), agora);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
@@ -110,7 +114,10 @@ class AgendamentoService {
         Instant agora = relogio.instant();
         Instant inicio = exigirReservaFutura(reserva, agora);
         boolean devolver = Duration.between(agora, inicio).compareTo(ANTECEDENCIA_REEMBOLSO) >= 0;
-        if (devolver) saldos.findById(paciente.getId()).orElseThrow().devolver();
+        if (devolver) {
+            saldos.obterParaAlterar(paciente).devolver();
+            creditosPlano.devolver(reserva.getContratacaoCredito());
+        }
         reserva.cancelar(agora, devolver);
         return resposta(reserva, agora);
     }
@@ -137,13 +144,7 @@ class AgendamentoService {
     }
 
     public AgendamentoDto.Saldo consultarSaldo(Long pacienteId) {
-        return new AgendamentoDto.Saldo(saldos.findById(pacienteId)
-                .map(SaldoSessoes::getDisponiveis).orElse(SALDO_INICIAL));
-    }
-
-    private SaldoSessoes saldoParaReserva(Usuario paciente) {
-        return saldos.findById(paciente.getId())
-                .orElseGet(() -> saldos.save(new SaldoSessoes(paciente, SALDO_INICIAL)));
+        return new AgendamentoDto.Saldo(saldos.consultar(pacienteId));
     }
 
     private Map<Horario, Long> ocupacao(LocalDate inicio, LocalDate fim) {

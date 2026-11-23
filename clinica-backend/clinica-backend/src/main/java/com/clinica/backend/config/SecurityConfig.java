@@ -110,6 +110,7 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.PUT, "/auth/me", "/auth/me/senha", "/auth/me/preferencias").hasRole("PACIENTE")
                     .requestMatchers("/aulas", "/aulas/**", "/agendamentos", "/agendamentos/**",
                             "/sessoes", "/sessoes/**").hasRole("PACIENTE")
+                    .requestMatchers("/planos", "/planos/**", "/pagamentos", "/pagamentos/**").hasRole("PACIENTE")
                     .anyRequest().authenticated()
             )
 

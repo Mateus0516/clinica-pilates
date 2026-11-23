@@ -1,6 +1,7 @@
 package com.clinica.backend.agendamento;
 
 import com.clinica.backend.model.Usuario;
+import com.clinica.backend.planos.ContratacaoPlano;
 import jakarta.persistence.*;
 import java.time.Instant;
 
@@ -22,6 +23,10 @@ public class Agendamento {
     @JoinColumn(name = "paciente_id", nullable = false)
     private Usuario paciente;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "contratacao_credito_id")
+    private ContratacaoPlano contratacaoCredito;
+
     @Column(nullable = false)
     private Instant criadoEm;
 
@@ -35,10 +40,11 @@ public class Agendamento {
 
     protected Agendamento() {}
 
-    Agendamento(Aula aula, Usuario paciente, Instant criadoEm) {
+    Agendamento(Aula aula, Usuario paciente, Instant criadoEm, ContratacaoPlano contratacaoCredito) {
         this.aula = aula;
         this.paciente = paciente;
         this.criadoEm = criadoEm;
+        this.contratacaoCredito = contratacaoCredito;
     }
 
     void cancelar(Instant agora, boolean devolverSessao) {
@@ -50,6 +56,7 @@ public class Agendamento {
         if (intencaoPresencaConfirmadaEm == null) intencaoPresencaConfirmadaEm = agora;
     }
 
+    ContratacaoPlano getContratacaoCredito() { return contratacaoCredito; }
     Long getId() { return id; }
     Aula getAula() { return aula; }
     Instant getCriadoEm() { return criadoEm; }

@@ -53,6 +53,7 @@ public class AuthService {
         usuario.setTelefone(telefone);
         usuario.setDataNascimento(dataNascimento);
         usuario.setPerfil("PACIENTE");
+        usuario.iniciarSaldoPorPlano();
 
         return usuarioRepository.save(usuario);
     }
