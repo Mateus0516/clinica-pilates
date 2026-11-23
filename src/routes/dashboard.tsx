@@ -69,7 +69,6 @@ function DashboardPage() {
       <StudentDashboard
         student={student}
         onLogout={handleLogout}
-        onUpdate={setStudent}
       />
     </div>
   );

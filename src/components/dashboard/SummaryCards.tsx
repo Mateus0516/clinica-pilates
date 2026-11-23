@@ -2,30 +2,25 @@ import {
   BarChart3,
   CalendarCheck2,
   Clock3,
-  Flame,
+  CalendarDays,
 } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 
-import type {
-  Booking,
-  Student,
-} from "@/lib/clinic-store";
+import { calendarDate, type Appointment } from "@/lib/scheduling";
 
 type SummaryCardsProps = {
-  student: Student;
-  nextBooking?: Booking;
-  classesThisMonth: number;
-  monthlyGoal: number;
-  goalProgress: number;
+  sessionsRemaining?: number;
+  nextBooking?: Appointment;
+  classesThisMonth?: number;
+  upcomingCount?: number;
 };
 
 export function SummaryCards({
-  student,
+  sessionsRemaining,
   nextBooking,
   classesThisMonth,
-  monthlyGoal,
-  goalProgress,
+  upcomingCount,
 }: SummaryCardsProps) {
   return (
     <section className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -38,7 +33,7 @@ export function SummaryCards({
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {student.sessionsRemaining}
+              {sessionsRemaining ?? "—"}
             </p>
           </div>
 
@@ -63,9 +58,7 @@ export function SummaryCards({
             {nextBooking ? (
               <>
                 <p className="mt-2 text-lg font-bold capitalize">
-                  {new Date(
-                    `${nextBooking.date}T00:00:00`,
-                  ).toLocaleDateString(
+                  {calendarDate(nextBooking.data).toLocaleDateString(
                     "pt-BR",
                     {
                       weekday: "long",
@@ -74,9 +67,7 @@ export function SummaryCards({
                 </p>
 
                 <p className="text-sm text-muted-foreground">
-                  {new Date(
-                    `${nextBooking.date}T00:00:00`,
-                  ).toLocaleDateString(
+                  {calendarDate(nextBooking.data).toLocaleDateString(
                     "pt-BR",
                     {
                       day: "2-digit",
@@ -86,16 +77,16 @@ export function SummaryCards({
 
                   {" • "}
 
-                  {nextBooking.time}
+                  {nextBooking.horario}
                 </p>
 
                 <span className="mt-3 inline-flex rounded-md bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground">
-                  Prof. {nextBooking.instructor}
+                  Prof. {nextBooking.instrutor}
                 </span>
               </>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                Nenhuma aula agendada.
+                {upcomingCount === 0 ? "Nenhuma aula agendada." : "—"}
               </p>
             )}
           </div>
@@ -115,7 +106,7 @@ export function SummaryCards({
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              {classesThisMonth}
+              {classesThisMonth ?? "—"}
             </p>
           </div>
 
@@ -124,26 +115,9 @@ export function SummaryCards({
           </div>
         </div>
 
-        <div className="mt-5">
-          <div className="mb-2 flex justify-between text-xs text-muted-foreground">
-            <span>
-              Meta: {monthlyGoal} aulas
-            </span>
-
-            <span>
-              {goalProgress}%
-            </span>
-          </div>
-
-          <div className="h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-primary transition-all duration-300"
-              style={{
-                width: `${goalProgress}%`,
-              }}
-            />
-          </div>
-        </div>
+        <p className="mt-5 text-xs text-muted-foreground">
+          Aulas agendadas e encerradas no mês.
+        </p>
       </Card>
 
       {/* SEQUÊNCIA */}
@@ -151,21 +125,21 @@ export function SummaryCards({
         <div className="flex items-start justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">
-              Sequência atual
+              Próximas aulas
             </p>
 
             <p className="mt-2 text-3xl font-bold">
-              5 dias
+              {upcomingCount ?? "—"}
             </p>
           </div>
 
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/15">
-            <Flame className="h-5 w-5 text-primary" />
+            <CalendarDays className="h-5 w-5 text-primary" />
           </div>
         </div>
 
         <p className="mt-5 text-xs text-muted-foreground">
-          Continue mantendo sua frequência 🔥
+          Atendimentos futuros na sua agenda.
         </p>
       </Card>
     </section>

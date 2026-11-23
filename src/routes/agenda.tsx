@@ -1,11 +1,10 @@
-import { logout, requirePatient } from "@/lib/auth";
+import { getPatient, logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
 } from "@tanstack/react-router";
 
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -27,51 +26,17 @@ import { Card } from "@/components/ui/card";
 import { PatientLayout } from "@/components/layout/PatientLayout";
 
 import {
-  Booking,
-  MAX_PER_SLOT,
-  Student,
-  fmtDate,
-  getBookings,
-  getSession,
-  saveBookings,
-  updateStudent,
-} from "@/lib/clinic-store";
-
-import {
-  addNotification,
-} from "@/lib/notification-store";
-
-import {
-  toast,
-  Toaster,
-} from "sonner";
+  calendarDate, calendarKey, clinicToday, hoursUntil, useAppointmentChange, useAppointments,
+  useSessionBalance, useSlots, type Appointment, type Slot,
+} from "@/lib/scheduling";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { Toaster } from "sonner";
 
 export const Route = createFileRoute("/agenda")({
   ssr: false,
   beforeLoad: requirePatient,
   component: AgendaPage,
 });
-
-const TIMES = [
-  "07:00",
-  "08:00",
-  "09:00",
-  "10:00",
-  "11:00",
-  "14:00",
-  "15:00",
-  "16:00",
-  "17:00",
-  "18:00",
-  "19:00",
-];
-
-const PROFESSIONALS = [
-  "Todos",
-  "Ana",
-  "Bruno",
-  "Carla",
-];
 
 type SidebarSection =
   | "inicio"
@@ -84,90 +49,18 @@ type SidebarSection =
 function AgendaPage() {
   const navigate = useNavigate();
 
-  const [
-    student,
-    setStudent,
-  ] = useState<Student | null>(
-    null,
-  );
-
-  const [
-    ready,
-    setReady,
-  ] = useState(false);
-
-  const [
-    bookings,
-    setBookings,
-  ] = useState<Booking[]>([]);
-
-  const [
-    selectedDate,
-    setSelectedDate,
-  ] = useState(new Date());
-
-  const [
-    period,
-    setPeriod,
-  ] = useState<
-    "todos" | "manha" | "tarde" | "noite"
-  >("todos");
-
-  const [
-    professional,
-    setProfessional,
-  ] = useState("Todos");
-
-  /*
-   * Horário aguardando confirmação
-   * antes de ser agendado.
-   */
-  const [
-    bookingToConfirm,
-    setBookingToConfirm,
-  ] = useState<{
-    time: string;
-    instructor: string;
-  } | null>(null);
-
-  /*
-   * Agendamento aguardando confirmação
-   * antes do cancelamento.
-   */
-  const [
-    bookingToCancel,
-    setBookingToCancel,
-  ] = useState<Booking | null>(
-    null,
-  );
-
-  /*
-   * Carrega a sessão do paciente
-   * e os agendamentos existentes.
-   */
-  useEffect(() => {
-    const currentStudent =
-      getSession();
-
-    if (!currentStudent) {
-      navigate({
-        to: "/paciente",
-        replace: true,
-      });
-
-      return;
-    }
-
-    setStudent(
-      currentStudent,
-    );
-
-    setBookings(
-      getBookings(),
-    );
-
-    setReady(true);
-  }, [navigate]);
+  const student = getPatient();
+  const [selectedDate, setSelectedDate] = useState(() => calendarDate(clinicToday()));
+  const [period, setPeriod] = useState<"todos" | "manha" | "tarde" | "noite">("todos");
+  const [professional, setProfessional] = useState("Todos");
+  const [bookingToConfirm, setBookingToConfirm] = useState<Slot | null>(null);
+  const [bookingToCancel, setBookingToCancel] = useState<Appointment | null>(null);
+  const appointments = useAppointments();
+  const balance = useSessionBalance();
+  const change = useAppointmentChange();
+  const sessionsRemaining = balance.data?.sessoesDisponiveis;
+  const dateKey = calendarKey(selectedDate);
+  const todayKey = clinicToday();
 
   const monthLabel =
     selectedDate.toLocaleDateString(
@@ -209,41 +102,16 @@ function AgendaPage() {
       );
     }, [selectedDate]);
 
-  /*
-   * Filtra os horários por período.
-   */
-  const filteredTimes =
-    TIMES.filter(
-      (time) => {
-        const hour =
-          Number(
-            time.split(":")[0],
-          );
-
-        if (
-          period === "manha"
-        ) {
-          return hour < 12;
-        }
-
-        if (
-          period === "tarde"
-        ) {
-          return (
-            hour >= 12 &&
-            hour < 18
-          );
-        }
-
-        if (
-          period === "noite"
-        ) {
-          return hour >= 18;
-        }
-
-        return true;
-      },
-    );
+  const slots = useSlots(calendarKey(daysInMonth[0]), calendarKey(daysInMonth[daysInMonth.length - 1]));
+  const professionals = [...new Set(["Todos", ...(slots.data ?? []).map((slot) => slot.instrutor), professional])];
+  const filteredSlots = (slots.data ?? []).filter((slot) => {
+    if (slot.data !== dateKey || (professional !== "Todos" && slot.instrutor !== professional)) return false;
+    const hour = Number(slot.horario.slice(0, 2));
+    if (period === "manha") return hour < 12;
+    if (period === "tarde") return hour >= 12 && hour < 18;
+    if (period === "noite") return hour >= 18;
+    return true;
+  });
 
   /*
    * Avança ou volta um mês.
@@ -334,470 +202,24 @@ function AgendaPage() {
    */
   const handleLogout = () => {
     logout();
-
-    setStudent(null);
-
-    navigate({
-      to: "/acesso",
-      replace: true,
-    });
+    void navigate({ to: "/acesso", replace: true });
   };
 
-  /*
-   * Define o profissional exibido.
-   *
-   * Enquanto o filtro estiver em
-   * "Todos", alternamos Ana e Bruno.
-   */
-  const getInstructor = (
-    index: number,
-  ) => {
-    if (
-      professional !== "Todos"
-    ) {
-      return professional;
-    }
-
-    return index % 2 === 0
-      ? "Ana"
-      : "Bruno";
-  };
-
-  /*
-   * Calcula as vagas disponíveis
-   * em determinado horário.
-   */
-  const getAvailableSpots = (
-    time: string,
-    instructor: string,
-  ) => {
-    const date =
-      fmtDate(
-        selectedDate,
-      );
-
-    const occupiedSpots =
-      bookings.filter(
-        (booking) =>
-          booking.date ===
-            date &&
-          booking.time ===
-            time &&
-          booking.instructor ===
-            instructor,
-      ).length;
-
-    return Math.max(
-      MAX_PER_SLOT -
-        occupiedSpots,
-      0,
-    );
-  };
-
-  /*
-   * Verifica se o horário
-   * selecionado já passou.
-   */
-  const isTimePast = (
-    time: string,
-  ) => {
-    const date =
-      fmtDate(
-        selectedDate,
-      );
-
-    const classDate =
-      new Date(
-        `${date}T${time}:00`,
-      );
-
-    return (
-      classDate.getTime() <
-      Date.now()
-    );
-  };
-
-  /*
-   * Procura um agendamento
-   * do próprio paciente.
-   */
-  const getMyBooking = (
-    time: string,
-    instructor: string,
-  ) => {
-    if (!student) {
-      return undefined;
-    }
-
-    const date =
-      fmtDate(
-        selectedDate,
-      );
-
-    return bookings.find(
-      (booking) =>
-        booking.date ===
-          date &&
-        booking.time ===
-          time &&
-        booking.instructor ===
-          instructor &&
-        booking.studentId ===
-          student.id,
-    );
-  };
-
-  /*
-   * CONFIRMAR AGENDAMENTO
-   */
   const confirmBooking = () => {
-    if (
-      !student ||
-      !bookingToConfirm
-    ) {
-      return;
-    }
-
-    /*
-     * Nesta versão do sistema,
-     * o paciente utiliza sessões
-     * disponíveis no pacote.
-     */
-    if (
-      student.sessionsRemaining <=
-      0
-    ) {
-      toast.error(
-        "Você não possui sessões disponíveis no seu pacote.",
-      );
-
-      setBookingToConfirm(
-        null,
-      );
-
-      return;
-    }
-
-    const date =
-      fmtDate(
-        selectedDate,
-      );
-
-    const {
-      time,
-      instructor,
-    } = bookingToConfirm;
-
-    const classDate =
-      new Date(
-        `${date}T${time}:00`,
-      );
-
-    /*
-     * Não permite agendamento
-     * de horário passado.
-     */
-    if (
-      classDate.getTime() <
-      Date.now()
-    ) {
-      toast.error(
-        "Não é possível agendar um horário que já passou.",
-      );
-
-      setBookingToConfirm(
-        null,
-      );
-
-      return;
-    }
-
-    const allBookings =
-      getBookings();
-
-    /*
-     * Impede duplicidade no
-     * mesmo atendimento.
-     */
-    const alreadyBookedInClass =
-      allBookings.some(
-        (booking) =>
-          booking.date ===
-            date &&
-          booking.time ===
-            time &&
-          booking.instructor ===
-            instructor &&
-          booking.studentId ===
-            student.id,
-      );
-
-    if (
-      alreadyBookedInClass
-    ) {
-      toast.error(
-        "Você já está agendado neste atendimento.",
-      );
-
-      setBookingToConfirm(
-        null,
-      );
-
-      return;
-    }
-
-    /*
-     * Mantemos temporariamente
-     * a regra de uma aula por dia.
-     */
-    const alreadyBookedOnDay =
-      allBookings.some(
-        (booking) =>
-          booking.date ===
-            date &&
-          booking.studentId ===
-            student.id,
-      );
-
-    if (
-      alreadyBookedOnDay
-    ) {
-      toast.error(
-        "Você já possui um atendimento agendado neste dia.",
-      );
-
-      setBookingToConfirm(
-        null,
-      );
-
-      return;
-    }
-
-    /*
-     * Verifica a capacidade
-     * do horário.
-     */
-    const classBookings =
-      allBookings.filter(
-        (booking) =>
-          booking.date ===
-            date &&
-          booking.time ===
-            time &&
-          booking.instructor ===
-            instructor,
-      );
-
-    if (
-      classBookings.length >=
-      MAX_PER_SLOT
-    ) {
-      toast.error(
-        "Este horário não possui mais vagas.",
-      );
-
-      setBookingToConfirm(
-        null,
-      );
-
-      return;
-    }
-
-    /*
-     * Cria o novo agendamento.
-     */
-    const newBooking: Booking = {
-      id: crypto.randomUUID(),
-      studentId:
-        student.id,
-      studentName:
-        student.name,
-      date,
-      time,
-      instructor,
-    };
-
-    const updatedBookings = [
-      ...allBookings,
-      newBooking,
-    ];
-
-    saveBookings(
-      updatedBookings,
-    );
-
-    setBookings(
-      updatedBookings,
-    );
-
-    /*
-     * Uma sessão é utilizada
-     * ao realizar o agendamento.
-     */
-    const updatedStudent: Student = {
-      ...student,
-      sessionsRemaining:
-        student.sessionsRemaining -
-        1,
-    };
-
-    updateStudent(
-      updatedStudent,
-    );
-
-    setStudent(
-      updatedStudent,
-    );
-
-    /*
-     * Cria notificação de
-     * confirmação.
-     */
-    addNotification({
-      studentId:
-        student.id,
-      bookingId:
-        newBooking.id,
-      title:
-        "Aula confirmada",
-      description: `Sua aula com Prof. ${instructor} foi agendada para ${new Date(
-        `${date}T00:00:00`,
-      ).toLocaleDateString(
-        "pt-BR",
-      )} às ${time}.`,
-      time: "Agora",
-      type: "confirmacao",
+    if (!bookingToConfirm || change.isPending) return;
+    change.mutate({ type: "reserve", slot: bookingToConfirm }, {
+      onSuccess: () => setBookingToConfirm(null),
     });
-
-    setBookingToConfirm(
-      null,
-    );
-
-    toast.success(
-      "Agendamento realizado com sucesso!",
-    );
   };
 
-  /*
-   * CONFIRMAR CANCELAMENTO
-   */
   const confirmCancel = () => {
-    if (
-      !student ||
-      !bookingToCancel
-    ) {
-      return;
-    }
-
-    const booking =
-      bookingToCancel;
-
-    const allBookings =
-      getBookings();
-
-    const updatedBookings =
-      allBookings.filter(
-        (currentBooking) =>
-          currentBooking.id !==
-          booking.id,
-      );
-
-    saveBookings(
-      updatedBookings,
-    );
-
-    setBookings(
-      updatedBookings,
-    );
-
-    const classDate =
-      new Date(
-        `${booking.date}T${booking.time}:00`,
-      );
-
-    const differenceInHours =
-      (classDate.getTime() -
-        Date.now()) /
-      36e5;
-
-    const formattedDate =
-      new Date(
-        `${booking.date}T00:00:00`,
-      ).toLocaleDateString(
-        "pt-BR",
-      );
-
-    /*
-     * Com 6 horas ou mais,
-     * a sessão volta para o pacote.
-     */
-    if (
-      differenceInHours >= 6
-    ) {
-      const updatedStudent: Student = {
-        ...student,
-        sessionsRemaining:
-          student.sessionsRemaining +
-          1,
-      };
-
-      updateStudent(
-        updatedStudent,
-      );
-
-      setStudent(
-        updatedStudent,
-      );
-
-      addNotification({
-        studentId:
-          student.id,
-        bookingId:
-          booking.id,
-        title:
-          "Aula cancelada",
-        description: `Sua aula com Prof. ${booking.instructor} do dia ${formattedDate} às ${booking.time} foi cancelada. A sessão foi devolvida ao seu pacote.`,
-        time: "Agora",
-        type: "cancelamento",
-      });
-
-      toast.success(
-        "Aula desmarcada. A sessão foi devolvida ao seu pacote.",
-      );
-    } else {
-      /*
-       * Com menos de 6 horas,
-       * o agendamento é cancelado,
-       * mas a sessão não retorna.
-       */
-      addNotification({
-        studentId:
-          student.id,
-        bookingId:
-          booking.id,
-        title:
-          "Aula cancelada",
-        description: `Sua aula com Prof. ${booking.instructor} do dia ${formattedDate} às ${booking.time} foi cancelada. Como faltavam menos de 6 horas, a sessão não foi devolvida ao pacote.`,
-        time: "Agora",
-        type: "cancelamento",
-      });
-
-      toast.warning(
-        "Aula desmarcada. Como faltavam menos de 6 horas, a sessão não foi devolvida ao pacote.",
-      );
-    }
-
-    setBookingToCancel(
-      null,
-    );
+    if (!bookingToCancel || change.isPending) return;
+    change.mutate({ type: "cancel", id: bookingToCancel.id }, {
+      onSuccess: () => setBookingToCancel(null),
+    });
   };
 
-  if (
-    !ready ||
-    !student
-  ) {
-    return null;
-  }
+  if (!student) return null;
 
   return (
     <PatientLayout
@@ -834,8 +256,8 @@ function AgendaPage() {
 
           {/* SESSÕES DISPONÍVEIS */}
           <div className="rounded-xl bg-primary/10 px-4 py-3 text-sm font-semibold text-primary">
-            {student.sessionsRemaining}{" "}
-            {student.sessionsRemaining === 1
+            {sessionsRemaining ?? "—"}{" "}
+            {sessionsRemaining === 1
               ? "sessão disponível"
               : "sessões disponíveis"}
           </div>
@@ -911,7 +333,7 @@ function AgendaPage() {
                 }
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-primary"
               >
-                {PROFESSIONALS.map(
+                {professionals.map(
                   (name) => (
                     <option
                       key={
@@ -1006,29 +428,13 @@ function AgendaPage() {
                     date.toDateString() ===
                     selectedDate.toDateString();
 
-                  const today =
-                    date.toDateString() ===
-                    new Date().toDateString();
-
-                  const endOfDay =
-                    new Date(
-                      date.getFullYear(),
-                      date.getMonth(),
-                      date.getDate(),
-                      23,
-                      59,
-                      59,
-                    );
-
-                  const pastDay =
-                    endOfDay.getTime() <
-                    Date.now();
+                  const today = calendarKey(date) === todayKey;
+                  const pastDay = calendarKey(date) < todayKey;
 
                   return (
                     <button
-                      key={
-                        date.toISOString()
-                      }
+                      key={calendarKey(date)}
+                      aria-pressed={selected}
                       type="button"
                       onClick={() =>
                         setSelectedDate(
@@ -1091,51 +497,33 @@ function AgendaPage() {
               </div>
 
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-600">
-                {filteredTimes.length}{" "}
+                {slots.data ? filteredSlots.length : "—"}{" "}
                 horários
               </span>
             </div>
 
             {/* LISTA DE HORÁRIOS */}
             <div className="mt-6 space-y-3">
-              {filteredTimes.map(
-                (
-                  time,
-                  index,
-                ) => {
-                  const instructor =
-                    getInstructor(
-                      index,
-                    );
-
-                  const available =
-                    getAvailableSpots(
-                      time,
-                      instructor,
-                    );
-
-                  const isFull =
-                    available <= 0;
-
-                  const isPast =
-                    isTimePast(
-                      time,
-                    );
-
-                  const myBooking =
-                    getMyBooking(
-                      time,
-                      instructor,
-                    );
-
-                  const isMine =
-                    Boolean(
-                      myBooking,
-                    );
+              <SchedulingFeedback query={slots} />
+              <SchedulingFeedback query={appointments} />
+              <SchedulingFeedback query={balance} />
+              {slots.isSuccess && filteredSlots.length === 0 && (
+                <p className="text-sm text-slate-500">Nenhum horário encontrado para esta data e estes filtros.</p>
+              )}
+              {filteredSlots.map(
+                (slot) => {
+                  const { horario: time, instrutor: instructor, vagasDisponiveis: available } = slot;
+                  const isFull = available === 0;
+                  const isPast = hoursUntil(slot) <= 0;
+                  const myBooking = appointments.data?.find((appointment) =>
+                    appointment.data === slot.data && appointment.horario === time
+                    && appointment.instrutorCodigo === slot.instrutorCodigo,
+                  );
+                  const isMine = Boolean(myBooking);
 
                   return (
                     <div
-                      key={`${time}-${instructor}`}
+                      key={`${time}-${slot.instrutorCodigo}`}
                       className={`flex flex-wrap items-center gap-4 rounded-xl border-2 p-4 transition ${
                         isMine
                           ? "border-emerald-500 bg-emerald-100 shadow-sm ring-1 ring-emerald-300"
@@ -1263,10 +651,7 @@ function AgendaPage() {
                       ) : (
                         <Button
                           type="button"
-                          disabled={
-                            isPast ||
-                            isFull
-                          }
+                          disabled={isPast || isFull || change.isPending || !appointments.isSuccess || !slots.isSuccess}
                           onClick={() => {
                             if (
                               isPast ||
@@ -1275,10 +660,7 @@ function AgendaPage() {
                               return;
                             }
 
-                            setBookingToConfirm({
-                              time,
-                              instructor,
-                            });
+                            setBookingToConfirm(slot);
                           }}
                         >
                           {isPast
@@ -1400,7 +782,7 @@ function AgendaPage() {
 
                   <span className="text-sm font-semibold text-slate-900">
                     {
-                      bookingToConfirm.time
+                      bookingToConfirm.horario
                     }
                   </span>
                 </div>
@@ -1416,7 +798,7 @@ function AgendaPage() {
                   <span className="text-sm font-semibold text-slate-900">
                     Prof.{" "}
                     {
-                      bookingToConfirm.instructor
+                      bookingToConfirm.instrutor
                     }
                   </span>
                 </div>
@@ -1434,9 +816,9 @@ function AgendaPage() {
                   <p className="mt-1 text-xs leading-5 text-slate-500">
                     Você possui{" "}
                     {
-                      student.sessionsRemaining
+                      sessionsRemaining ?? "—"
                     }{" "}
-                    {student.sessionsRemaining ===
+                    {sessionsRemaining ===
                     1
                       ? "sessão disponível."
                       : "sessões disponíveis."}
@@ -1463,9 +845,8 @@ function AgendaPage() {
               <Button
                 type="button"
                 className="flex-1"
-                onClick={
-                  confirmBooking
-                }
+                disabled={change.isPending}
+                onClick={confirmBooking}
               >
                 Confirmar agendamento
               </Button>
@@ -1530,7 +911,7 @@ function AgendaPage() {
 
                   <span className="text-sm font-semibold text-slate-900">
                     {new Date(
-                      `${bookingToCancel.date}T00:00:00`,
+                      `${bookingToCancel.data}T00:00:00`,
                     ).toLocaleDateString(
                       "pt-BR",
                     )}
@@ -1547,7 +928,7 @@ function AgendaPage() {
 
                   <span className="text-sm font-semibold text-slate-900">
                     {
-                      bookingToCancel.time
+                      bookingToCancel.horario
                     }
                   </span>
                 </div>
@@ -1563,7 +944,7 @@ function AgendaPage() {
                   <span className="text-sm font-semibold text-slate-900">
                     Prof.{" "}
                     {
-                      bookingToCancel.instructor
+                      bookingToCancel.instrutor
                     }
                   </span>
                 </div>
@@ -1600,9 +981,8 @@ function AgendaPage() {
               <Button
                 type="button"
                 variant="destructive"
-                onClick={
-                  confirmCancel
-                }
+                disabled={change.isPending}
+                onClick={confirmCancel}
               >
                 Confirmar cancelamento
               </Button>

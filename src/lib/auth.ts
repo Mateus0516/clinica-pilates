@@ -19,6 +19,7 @@ type Registration = {
 };
 
 const tokenKey = "timely_patient_token";
+export const sessionClearedEvent = "timely:patient-session-cleared";
 export const sessionEndedEvent = "timely:patient-session-ended";
 
 let patient: PatientProfile | null = null;
@@ -38,8 +39,10 @@ export function getPatient() {
 export function logout() {
   loginAttempt++;
   window.clearTimeout(expiryTimer);
+  const hadSession = sessionStorage.getItem(tokenKey) !== null;
   sessionStorage.removeItem(tokenKey);
   patient = null;
+  if (hadSession) window.dispatchEvent(new Event(sessionClearedEvent));
 }
 
 function endSession(token: string) {
@@ -72,7 +75,9 @@ export async function authenticatedRequest<T>(
   headers.set("Authorization", `Bearer ${token}`);
 
   try {
-    return await apiRequest<T>(path, { ...options, headers });
+    const data = await apiRequest<T>(path, { ...options, headers });
+    if (sessionStorage.getItem(tokenKey) !== token) throw new ApiError(401);
+    return data;
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) endSession(token);
     throw error;

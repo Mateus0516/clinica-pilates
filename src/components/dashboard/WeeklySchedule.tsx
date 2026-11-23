@@ -14,14 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScheduleFilters } from "@/components/dashboard/ScheduleFilters";
 
-import {
-  Booking,
-  INSTRUCTORS,
-  MAX_PER_SLOT,
-  Student,
-  TIME_SLOTS,
-  fmtDate,
-} from "@/lib/clinic-store";
+import { TIME_SLOTS } from "@/lib/clinic-store";
+import { calendarDate, calendarKey, clinicToday, hoursUntil, type Appointment, type Slot } from "@/lib/scheduling";
 
 const WEEKDAYS = [
   "SEG",
@@ -33,28 +27,24 @@ const WEEKDAYS = [
 ];
 
 type WeeklyScheduleProps = {
-  student: Student;
+  sessionsRemaining?: number;
+  slots: Slot[];
+  canReserve: boolean;
+  isPending: boolean;
   week: Date[];
-  bookings: Booking[];
+  bookings: Appointment[];
   onPreviousWeek: () => void;
   onNextWeek: () => void;
   onGoToToday: () => void;
-  onBook: (
-    date: string,
-    time: string,
-    instructor: string,
-  ) => void;
-  onCancel: (booking: Booking) => void;
-};
-
-type SelectedClass = {
-  date: string;
-  time: string;
-  instructor: string;
+  onBook: (slot: Slot) => Promise<boolean>;
+  onCancel: (booking: Appointment) => Promise<boolean>;
 };
 
 export function WeeklySchedule({
-  student,
+  sessionsRemaining,
+  slots,
+  canReserve,
+  isPending,
   week,
   bookings,
   onPreviousWeek,
@@ -77,39 +67,24 @@ export function WeeklySchedule({
   const [
     selectedClass,
     setSelectedClass,
-  ] = useState<SelectedClass | null>(null);
+  ] = useState<Slot | null>(null);
 
   // Aula selecionada para cancelamento
   const [
     bookingToCancel,
     setBookingToCancel,
-  ] = useState<Booking | null>(null);
+  ] = useState<Appointment | null>(null);
 
   const filteredTimeSlots = useMemo(() => {
     const normalizedSearch =
       searchTime.trim().toLowerCase();
 
-    if (!normalizedSearch) {
-      return TIME_SLOTS;
-    }
+    const times = [...new Set([...TIME_SLOTS, ...slots.map((slot) => slot.horario)])].sort();
+    return times.filter((time) => time.includes(normalizedSearch));
+  }, [searchTime, slots]);
 
-    return TIME_SLOTS.filter((time) =>
-      time
-        .toLowerCase()
-        .includes(normalizedSearch),
-    );
-  }, [searchTime]);
-
-  const filteredInstructors = useMemo(() => {
-    if (selectedInstructor === "Todos") {
-      return INSTRUCTORS;
-    }
-
-    return INSTRUCTORS.filter(
-      (instructor) =>
-        instructor === selectedInstructor,
-    );
-  }, [selectedInstructor]);
+  const instructors = [...new Set([...slots.map((slot) => slot.instrutor), selectedInstructor])]
+    .filter((name) => name !== "Todos");
 
   const clearFilters = () => {
     setSearchTime("");
@@ -117,49 +92,27 @@ export function WeeklySchedule({
     setOnlyAvailable(false);
   };
 
-  const today = fmtDate(new Date());
+  const today = clinicToday();
 
-  const handleConfirmBooking = () => {
-    if (!selectedClass) {
-      return;
-    }
-
-    onBook(
-      selectedClass.date,
-      selectedClass.time,
-      selectedClass.instructor,
-    );
-
-    setSelectedClass(null);
+  const handleConfirmBooking = async () => {
+    if (!selectedClass || isPending) return;
+    if (await onBook(selectedClass)) setSelectedClass(null);
   };
 
-  const handleConfirmCancel = () => {
-    if (!bookingToCancel) {
-      return;
-    }
-
-    onCancel(bookingToCancel);
-
-    setBookingToCancel(null);
+  const handleConfirmCancel = async () => {
+    if (!bookingToCancel || isPending) return;
+    if (await onCancel(bookingToCancel)) setBookingToCancel(null);
   };
 
-  const formattedSelectedDate =
-    selectedClass
-      ? new Date(
-          `${selectedClass.date}T00:00:00`,
-        ).toLocaleDateString("pt-BR")
-      : "";
-
-  const formattedCancelDate =
-    bookingToCancel
-      ? new Date(
-          `${bookingToCancel.date}T00:00:00`,
-        ).toLocaleDateString("pt-BR")
-      : "";
+  const formattedSelectedDate = selectedClass ? calendarDate(selectedClass.data).toLocaleDateString("pt-BR") : "";
+  const formattedCancelDate = bookingToCancel ? calendarDate(bookingToCancel.data).toLocaleDateString("pt-BR") : "";
 
   return (
     <>
       <Card className="overflow-hidden shadow-sm">
+        {canReserve && slots.length === 0 && (
+          <p className="px-4 py-3 text-sm text-muted-foreground">Nenhum horário encontrado nesta semana.</p>
+        )}
         {/* CABEÇALHO */}
         <div className="border-b border-border p-4 md:p-6">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
@@ -218,6 +171,7 @@ export function WeeklySchedule({
           </div>
 
           <ScheduleFilters
+            instructors={instructors}
             searchTime={searchTime}
             selectedInstructor={
               selectedInstructor
@@ -258,7 +212,7 @@ export function WeeklySchedule({
 
                 {week.map((date, index) => {
                   const formattedDate =
-                    fmtDate(date);
+                    calendarKey(date);
 
                   const isToday =
                     formattedDate === today;
@@ -313,16 +267,10 @@ export function WeeklySchedule({
 
                   {week.map((date) => {
                     const formattedDate =
-                      fmtDate(date);
+                      calendarKey(date);
 
                     const isToday =
                       formattedDate === today;
-
-                    const isPast =
-                      new Date(
-                        `${formattedDate}T${time}:00`,
-                      ).getTime() <
-                      Date.now();
 
                     return (
                       <div
@@ -335,29 +283,18 @@ export function WeeklySchedule({
                         }
                       >
                         <div className="space-y-1.5">
-                          {filteredInstructors.map(
-                            (instructor) => {
-                              const slotBookings =
-                                bookings.filter(
-                                  (booking) =>
-                                    booking.date ===
-                                      formattedDate &&
-                                    booking.time ===
-                                      time &&
-                                    booking.instructor ===
-                                      instructor,
-                                );
-
-                              const mine =
-                                slotBookings.some(
-                                  (booking) =>
-                                    booking.studentId ===
-                                    student.id,
-                                );
-
-                              const full =
-                                slotBookings.length >=
-                                MAX_PER_SLOT;
+                          {slots.filter((slot) =>
+                            slot.data === formattedDate && slot.horario === time
+                            && (selectedInstructor === "Todos" || slot.instrutor === selectedInstructor),
+                          ).map((slot) => {
+                              const instructor = slot.instrutor;
+                              const myBooking = bookings.find((booking) =>
+                                booking.data === slot.data && booking.horario === slot.horario
+                                && booking.instrutorCodigo === slot.instrutorCodigo,
+                              );
+                              const mine = Boolean(myBooking);
+                              const full = slot.vagasDisponiveis === 0;
+                              const isPast = hoursUntil(slot) <= 0;
 
                               if (
                                 onlyAvailable &&
@@ -369,51 +306,12 @@ export function WeeklySchedule({
 
                               return (
                                 <button
-                                  key={instructor}
+                                  key={slot.instrutorCodigo}
                                   type="button"
-                                  disabled={
-                                    isPast ||
-                                    (full && !mine)
-                                  }
+                                  disabled={isPending || isPast || (!mine && (full || !canReserve))}
                                   onClick={() => {
-                                    /*
-                                     * SE FOR UMA AULA DO
-                                     * PRÓPRIO PACIENTE,
-                                     * ABRE O MODAL DE
-                                     * CANCELAMENTO.
-                                     */
-                                    if (mine) {
-                                      const studentBooking =
-                                        slotBookings.find(
-                                          (
-                                            booking,
-                                          ) =>
-                                            booking.studentId ===
-                                            student.id,
-                                        );
-
-                                      if (
-                                        studentBooking
-                                      ) {
-                                        setBookingToCancel(
-                                          studentBooking,
-                                        );
-                                      }
-
-                                      return;
-                                    }
-
-                                    /*
-                                     * NÃO AGENDA
-                                     * IMEDIATAMENTE.
-                                     * PRIMEIRO ABRE O
-                                     * MODAL.
-                                     */
-                                    setSelectedClass({
-                                      date: formattedDate,
-                                      time,
-                                      instructor,
-                                    });
+                                    if (myBooking) setBookingToCancel(myBooking);
+                                    else setSelectedClass(slot);
                                   }}
                                   className={
                                     "group w-full rounded-lg border-l-4 px-3 py-2 text-left shadow-sm transition-all " +
@@ -442,9 +340,9 @@ export function WeeklySchedule({
                                       <Users className="h-3 w-3" />
 
                                       {
-                                        slotBookings.length
+                                        slot.capacidade - slot.vagasDisponiveis
                                       }
-                                      /{MAX_PER_SLOT}
+                                      /{slot.capacidade}
 
                                       {mine && (
                                         <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-success text-success-foreground">
@@ -558,7 +456,7 @@ export function WeeklySchedule({
                   </span>
 
                   <span className="text-base font-bold text-slate-950">
-                    {selectedClass.time}
+                    {selectedClass.horario}
                   </span>
                 </div>
 
@@ -569,7 +467,7 @@ export function WeeklySchedule({
 
                   <span className="text-base font-bold text-slate-950">
                     Prof.{" "}
-                    {selectedClass.instructor}
+                    {selectedClass.instrutor}
                   </span>
                 </div>
               </div>
@@ -588,8 +486,8 @@ export function WeeklySchedule({
 
                   <p className="mt-1 text-sm text-slate-500">
                     Você possui{" "}
-                    {student.sessionsRemaining}{" "}
-                    {student.sessionsRemaining === 1
+                    {sessionsRemaining ?? "—"}{" "}
+                    {sessionsRemaining === 1
                       ? "sessão disponível"
                       : "sessões disponíveis"}.
                   </p>
@@ -613,9 +511,8 @@ export function WeeklySchedule({
               <Button
                 type="button"
                 className="h-12 rounded-xl text-base"
-                onClick={
-                  handleConfirmBooking
-                }
+                disabled={isPending}
+                onClick={handleConfirmBooking}
               >
                 Confirmar agendamento
               </Button>
@@ -683,7 +580,7 @@ export function WeeklySchedule({
                   </span>
 
                   <span className="text-base font-bold text-slate-950">
-                    {bookingToCancel.time}
+                    {bookingToCancel.horario}
                   </span>
                 </div>
 
@@ -695,7 +592,7 @@ export function WeeklySchedule({
                   <span className="text-base font-bold text-slate-950">
                     Prof.{" "}
                     {
-                      bookingToCancel.instructor
+                      bookingToCancel.instrutor
                     }
                   </span>
                 </div>
@@ -732,9 +629,8 @@ export function WeeklySchedule({
                 type="button"
                 variant="destructive"
                 className="h-12 rounded-xl text-base"
-                onClick={
-                  handleConfirmCancel
-                }
+                disabled={isPending}
+                onClick={handleConfirmCancel}
               >
                 Confirmar cancelamento
               </Button>

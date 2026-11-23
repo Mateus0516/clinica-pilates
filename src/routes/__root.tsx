@@ -1,5 +1,6 @@
+import { schedulingKey } from "@/lib/scheduling";
 import { useEffect } from "react";
-import { removeLegacyCredentials, requirePatient, sessionEndedEvent } from "@/lib/auth";
+import { removeLegacyCredentials, requirePatient, sessionClearedEvent, sessionEndedEvent } from "@/lib/auth";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   Outlet,
@@ -196,9 +197,20 @@ function RootComponent() {
       }
     };
 
+    const clearPatientQueries = () => {
+      queryClient.removeQueries({ queryKey: schedulingKey });
+      const mutations = queryClient.getMutationCache();
+      for (const mutation of mutations.findAll({ mutationKey: schedulingKey })) {
+        mutations.remove(mutation);
+      }
+    };
+    window.addEventListener(sessionClearedEvent, clearPatientQueries);
     window.addEventListener(sessionEndedEvent, handleSessionEnd);
-    return () => window.removeEventListener(sessionEndedEvent, handleSessionEnd);
-  }, [router]);
+    return () => {
+      window.removeEventListener(sessionClearedEvent, clearPatientQueries);
+      window.removeEventListener(sessionEndedEvent, handleSessionEnd);
+    };
+  }, [queryClient, router]);
 
   return (
     <QueryClientProvider client={queryClient}>

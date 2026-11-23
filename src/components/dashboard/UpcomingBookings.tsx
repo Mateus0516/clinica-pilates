@@ -3,31 +3,32 @@ import { AlertTriangle, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { Booking } from "@/lib/clinic-store";
+import { calendarDate, type Appointment } from "@/lib/scheduling";
 
 type UpcomingBookingsProps = {
-  bookings: Booking[];
-  onCancel: (booking: Booking) => void;
+  bookings: Appointment[];
+  onCancel: (booking: Appointment) => Promise<boolean>;
+  isPending: boolean;
 };
 
 export function UpcomingBookings({
   bookings,
   onCancel,
+  isPending,
 }: UpcomingBookingsProps) {
   const [bookingToCancel, setBookingToCancel] =
-    useState<Booking | null>(null);
+    useState<Appointment | null>(null);
 
   if (bookings.length === 0) {
     return null;
   }
 
-  const handleConfirmCancel = () => {
-    if (!bookingToCancel) {
+  const handleConfirmCancel = async () => {
+    if (!bookingToCancel || isPending) {
       return;
     }
 
-    onCancel(bookingToCancel);
-    setBookingToCancel(null);
+    if (await onCancel(bookingToCancel)) setBookingToCancel(null);
   };
 
   return (
@@ -45,9 +46,7 @@ export function UpcomingBookings({
             >
               <div className="text-sm">
                 <div className="font-medium">
-                  {new Date(
-                    `${booking.date}T00:00:00`,
-                  ).toLocaleDateString("pt-BR", {
+                  {calendarDate(booking.data).toLocaleDateString("pt-BR", {
                     weekday: "short",
                     day: "2-digit",
                     month: "2-digit",
@@ -55,11 +54,11 @@ export function UpcomingBookings({
 
                   {" • "}
 
-                  {booking.time}
+                  {booking.horario}
                 </div>
 
                 <div className="text-xs text-muted-foreground">
-                  Instrutor(a) {booking.instructor}
+                  Instrutor(a) {booking.instrutor}
                 </div>
               </div>
 
@@ -100,9 +99,7 @@ export function UpcomingBookings({
 
             <div className="mb-6 rounded-xl border bg-muted/40 p-4">
               <p className="font-medium">
-                {new Date(
-                  `${bookingToCancel.date}T00:00:00`,
-                ).toLocaleDateString("pt-BR", {
+                {calendarDate(bookingToCancel.data).toLocaleDateString("pt-BR", {
                   weekday: "long",
                   day: "2-digit",
                   month: "2-digit",
@@ -111,10 +108,10 @@ export function UpcomingBookings({
               </p>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                {bookingToCancel.time}
+                {bookingToCancel.horario}
                 {" • "}
                 Instrutor(a){" "}
-                {bookingToCancel.instructor}
+                {bookingToCancel.instrutor}
               </p>
             </div>
 
@@ -136,6 +133,7 @@ export function UpcomingBookings({
 
               <Button
                 variant="destructive"
+                disabled={isPending}
                 onClick={handleConfirmCancel}
               >
                 Confirmar cancelamento

@@ -1,11 +1,10 @@
-import { logout, requirePatient } from "@/lib/auth";
+import { getPatient, logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
 } from "@tanstack/react-router";
 
 import {
-  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -24,12 +23,8 @@ import { PatientLayout } from "@/components/layout/PatientLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-import {
-  Booking,
-  Student,
-  getBookings,
-  getSession,
-} from "@/lib/clinic-store";
+import { calendarDate, clinicDateKey, clinicToday, useAppointmentHistory, type Appointment } from "@/lib/scheduling";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
 
 import { Toaster } from "sonner";
 
@@ -47,24 +42,11 @@ type SidebarSection =
   | "perfil"
   | "notificacoes";
 
-type HistoryStatus =
-  | "concluido"
-  | "cancelado"
-  | "falta";
-
-type HistoryItem = Booking & {
-  status: HistoryStatus;
-  activity: string;
-};
-
 function HistoryPage() {
   const navigate = useNavigate();
 
-  const [student, setStudent] =
-    useState<Student | null>(null);
-
-  const [ready, setReady] =
-    useState(false);
+  const student = getPatient();
+  const history = useAppointmentHistory();
 
   const [period, setPeriod] =
     useState<
@@ -74,25 +56,8 @@ function HistoryPage() {
   const [professional, setProfessional] =
     useState("Todos");
 
-  useEffect(() => {
-    const currentStudent = getSession();
-
-    if (!currentStudent) {
-      navigate({
-        to: "/paciente",
-        replace: true,
-      });
-
-      return;
-    }
-
-    setStudent(currentStudent);
-    setReady(true);
-  }, [navigate]);
-
   const handleLogout = () => {
     logout();
-    setStudent(null);
 
     navigate({
       to: "/acesso",
@@ -152,141 +117,33 @@ function HistoryPage() {
     }
   };
 
-  const allHistory = useMemo<HistoryItem[]>(() => {
-    if (!student) {
-      return [];
-    }
-
-    const now = Date.now();
-
-    return getBookings()
-      .filter(
-        (booking) =>
-          booking.studentId === student.id,
-      )
-      .filter((booking) => {
-        const bookingDate = new Date(
-          `${booking.date}T${booking.time}:00`,
-        ).getTime();
-
-        return bookingDate < now;
-      })
-      .map((booking, index) => {
-        const activities = [
-          "Pilates",
-          "Fisioterapia",
-          "RPG",
-        ];
-
-        const statuses: HistoryStatus[] = [
-          "concluido",
-          "concluido",
-          "cancelado",
-          "concluido",
-          "falta",
-        ];
-
-        return {
-          ...booking,
-          activity:
-            activities[index % activities.length],
-          status:
-            statuses[index % statuses.length],
-        };
-      })
-      .sort(
-        (a, b) =>
-          `${b.date}T${b.time}`.localeCompare(
-            `${a.date}T${a.time}`,
-          ),
-      );
-  }, [student]);
-
-  const professionals = useMemo(() => {
-    const names = Array.from(
-      new Set(
-        allHistory.map(
-          (item) => item.instructor,
-        ),
-      ),
-    );
-
-    return [
-      "Todos",
-      ...names,
-    ];
-  }, [allHistory]);
-
   const filteredHistory = useMemo(() => {
-    const now = new Date();
-
-    return allHistory.filter((item) => {
-      const itemDate = new Date(
-        `${item.date}T${item.time}:00`,
-      );
-
-      if (
-        professional !== "Todos" &&
-        item.instructor !== professional
-      ) {
-        return false;
-      }
-
-      if (period === "todos") {
-        return true;
-      }
-
-      const difference =
-        now.getTime() -
-        itemDate.getTime();
-
-      const days =
-        difference /
-        (1000 * 60 * 60 * 24);
-
-      if (period === "30dias") {
-        return days <= 30;
-      }
-
-      if (period === "3meses") {
-        return days <= 90;
-      }
-
-      return days <= 180;
+    const today = Date.parse(clinicToday());
+    return (history.data ?? []).filter((item) => {
+      if (professional !== "Todos" && item.instrutor !== professional) return false;
+      if (period === "todos") return true;
+      const activityDate = item.canceladoEm ? clinicDateKey(new Date(item.canceladoEm)) : item.data;
+      const days = (today - Date.parse(activityDate)) / 86_400_000;
+      const limit = period === "30dias" ? 30 : period === "3meses" ? 90 : 180;
+      return days >= 0 && days <= limit;
     });
-  }, [
-    allHistory,
-    period,
-    professional,
-  ]);
+  }, [history.data, period, professional]);
 
-  const completedCount =
-    allHistory.filter(
-      (item) =>
-        item.status === "concluido",
-    ).length;
-
-  const canceledCount =
-    allHistory.filter(
-      (item) =>
-        item.status === "cancelado",
-    ).length;
-
-  const absenceCount =
-    allHistory.filter(
-      (item) =>
-        item.status === "falta",
-    ).length;
-
-  const lastActivity =
-    allHistory[0] ?? null;
+  const professionals = ["Todos", ...new Set(history.data?.map((item) => item.instrutor) ?? [])];
+  const completedCount = history.data?.filter((item) => item.status === "ENCERRADO").length;
+  const canceledCount = history.data?.filter((item) => item.status === "CANCELADO").length;
+  const refundedCount = history.data?.filter((item) => item.sessaoDevolvida).length;
+  const lastActivity = history.data?.reduce<string | undefined>((latest, item) => {
+    const date = item.canceladoEm ? clinicDateKey(new Date(item.canceladoEm)) : item.data;
+    return !latest || date > latest ? date : latest;
+  }, undefined);
 
   const resetFilters = () => {
     setPeriod("todos");
     setProfessional("Todos");
   };
 
-  if (!ready || !student) {
+  if (!student) {
     return null;
   }
 
@@ -312,8 +169,7 @@ function HistoryPage() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-slate-600">
-            Consulte seus atendimentos concluídos,
-            cancelamentos, faltas e profissionais.
+            Consulte suas aulas encerradas, cancelamentos e devoluções de sessões.
           </p>
         </div>
 
@@ -321,51 +177,30 @@ function HistoryPage() {
         <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SummaryCard
             icon={CalendarCheck2}
-            value={completedCount}
-            title="Atendimentos concluídos"
-            description="Total de atendimentos finalizados"
+            value={completedCount ?? "—"}
+            title="Aulas encerradas"
+            description="Aulas cujo horário já passou"
           />
 
           <SummaryCard
             icon={XCircle}
-            value={canceledCount}
+            value={canceledCount ?? "—"}
             title="Cancelamentos"
             description="Atendimentos cancelados"
           />
 
           <SummaryCard
             icon={CheckCircle2}
-            value={absenceCount}
-            title="Faltas"
-            description={
-              absenceCount === 0
-                ? "Você não possui faltas"
-                : "Faltas registradas"
-            }
+            value={refundedCount ?? "—"}
+            title="Sessões devolvidas"
+            description="Sessões devolvidas por cancelamento"
           />
 
           <SummaryCard
             icon={Clock3}
-            value={
-              lastActivity
-                ? new Date(
-                    `${lastActivity.date}T00:00:00`,
-                  ).toLocaleDateString(
-                    "pt-BR",
-                    {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "numeric",
-                    },
-                  )
-                : "—"
-            }
+            value={lastActivity ? calendarDate(lastActivity).toLocaleDateString("pt-BR") : "—"}
             title="Última atividade"
-            description={
-              lastActivity
-                ? `${lastActivity.activity} com Prof. ${lastActivity.instructor}`
-                : "Nenhum atendimento anterior"
-            }
+            description="Última aula encerrada ou cancelada"
           />
         </div>
 
@@ -464,11 +299,12 @@ function HistoryPage() {
             </div>
 
             <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-              {filteredHistory.length} registros
+              {history.data ? filteredHistory.length : "—"} registros
             </span>
           </div>
 
-          {filteredHistory.length === 0 ? (
+          <SchedulingFeedback query={history} />
+          {history.isSuccess && (filteredHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <Clock3 className="h-8 w-8" />
@@ -494,7 +330,7 @@ function HistoryPage() {
                 ),
               )}
             </div>
-          )}
+          ))}
         </Card>
       </div>
     </PatientLayout>
@@ -540,11 +376,9 @@ function SummaryCard({
 function HistoryRow({
   item,
 }: {
-  item: HistoryItem;
+  item: Appointment;
 }) {
-  const formattedDate = new Date(
-    `${item.date}T00:00:00`,
-  );
+  const formattedDate = calendarDate(item.data);
 
   const day = formattedDate
     .getDate()
@@ -569,25 +403,10 @@ function HistoryRow({
       },
     );
 
-  const statusConfig = {
-    concluido: {
-      label: "Concluído",
-      className:
-        "bg-emerald-50 text-emerald-700",
-    },
-
-    cancelado: {
-      label: "Cancelado",
-      className:
-        "bg-amber-50 text-amber-700",
-    },
-
-    falta: {
-      label: "Falta",
-      className:
-        "bg-red-50 text-red-600",
-    },
-  }[item.status];
+  const canceled = item.status === "CANCELADO";
+  const statusConfig = canceled
+    ? { label: "Cancelado", className: "bg-amber-50 text-amber-700" }
+    : { label: "Encerrado", className: "bg-emerald-50 text-emerald-700" };
 
   return (
     <div className="flex flex-wrap items-center gap-5 rounded-xl border border-slate-200 bg-white p-4 transition hover:border-primary/30 hover:shadow-sm">
@@ -601,7 +420,7 @@ function HistoryRow({
         </p>
 
         <p className="mt-1 text-xs capitalize text-slate-400">
-          {weekday} · {item.time}
+          {weekday} · {item.horario}
         </p>
       </div>
 
@@ -611,12 +430,17 @@ function HistoryRow({
 
       <div className="min-w-[200px] flex-1">
         <p className="font-bold text-slate-950">
-          {item.activity}
+          Atendimento
         </p>
 
         <p className="mt-1 text-sm text-slate-600">
-          Prof. {item.instructor}
+          Prof. {item.instrutor}
         </p>
+        {canceled && (
+          <p className="mt-1 text-sm text-slate-600">
+            {item.sessaoDevolvida ? "Sessão devolvida" : "Sessão não devolvida"}
+          </p>
+        )}
       </div>
 
       <span

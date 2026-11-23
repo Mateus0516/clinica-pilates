@@ -1,10 +1,10 @@
 import { CalendarDays, Search, RotateCcw, UserRound } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { INSTRUCTORS } from "@/lib/clinic-store";
 
 type ScheduleFiltersProps = {
   searchTime: string;
+  instructors: string[];
   selectedInstructor: string;
   onlyAvailable: boolean;
   onSearchTimeChange: (value: string) => void;
@@ -16,6 +16,7 @@ type ScheduleFiltersProps = {
 
 export function ScheduleFilters({
   searchTime,
+  instructors,
   selectedInstructor,
   onlyAvailable,
   onSearchTimeChange,
@@ -48,7 +49,7 @@ export function ScheduleFilters({
         >
           <option value="Todos">Todos os professores</option>
 
-          {INSTRUCTORS.map((instructor) => (
+          {instructors.map((instructor) => (
             <option key={instructor} value={instructor}>
               {instructor}
             </option>

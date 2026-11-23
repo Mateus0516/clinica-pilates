@@ -28,10 +28,12 @@ import {
 
 type DashboardHeaderProps = {
   student: Student;
+  sessionsRemaining?: number;
 };
 
 export function DashboardHeader({
   student,
+  sessionsRemaining,
 }: DashboardHeaderProps) {
   const navigate = useNavigate();
 
@@ -393,8 +395,8 @@ export function DashboardHeader({
           <CalendarDays className="h-5 w-5 text-accent-foreground" />
 
           <span className="font-semibold text-accent-foreground">
-            {student.sessionsRemaining}{" "}
-            {student.sessionsRemaining === 1
+            {sessionsRemaining ?? "—"}{" "}
+            {sessionsRemaining === 1
               ? "sessão disponível"
               : "sessões disponíveis"}
           </span>

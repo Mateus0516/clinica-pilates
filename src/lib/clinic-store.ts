@@ -37,13 +37,6 @@ export const TIME_SLOTS = [
   "19:00",
 ];
 
-export const INSTRUCTORS = [
-  "Ana",
-  "Bruno",
-];
-
-export const MAX_PER_SLOT = 3;
-
 function read<T>(
   key: string,
   fallback: T,
@@ -82,19 +75,11 @@ function write<T>(
   );
 }
 
+// Read-only legacy data for profile screens outside the scheduling integration.
 export function getBookings(): Booking[] {
   return read<Booking[]>(
     BOOKINGS_KEY,
     [],
-  );
-}
-
-export function saveBookings(
-  bookings: Booking[],
-) {
-  write(
-    BOOKINGS_KEY,
-    bookings,
   );
 }
 
@@ -124,114 +109,5 @@ export function updateStudent(student: Student) {
     ...local,
     ...(current.name !== student.name && { name: student.name }),
     ...(current.email !== student.email && { email: student.email }),
-    sessionsRemaining: student.sessionsRemaining,
   } satisfies LocalStudent);
-}
-
-export function getWeekDates(
-  offset = 0,
-): Date[] {
-  const today = new Date();
-
-  const day =
-    today.getDay();
-
-  const monday =
-    new Date(today);
-
-  monday.setDate(
-    today.getDate() -
-      ((day + 6) % 7) +
-      offset * 7,
-  );
-
-  monday.setHours(
-    0,
-    0,
-    0,
-    0,
-  );
-
-  return Array.from(
-    {
-      length: 6,
-    },
-    (_, index) => {
-      const date =
-        new Date(monday);
-
-      date.setDate(
-        monday.getDate() +
-          index,
-      );
-
-      return date;
-    },
-  );
-}
-
-export function fmtDate(
-  date: Date,
-): string {
-  return date
-    .toISOString()
-    .slice(0, 10);
-}
-
-export function bookingsAt(
-  date: string,
-  time: string,
-  instructor: string,
-): Booking[] {
-  return getBookings().filter(
-    (booking) =>
-      booking.date === date &&
-      booking.time === time &&
-      booking.instructor ===
-        instructor,
-  );
-}
-
-/*
- * Confirma a presença do paciente
- * em um agendamento existente.
- */
-export function confirmBooking(
-  bookingId: string,
-): Booking {
-  const bookings =
-    getBookings();
-
-  const booking =
-    bookings.find(
-      (currentBooking) =>
-        currentBooking.id ===
-        bookingId,
-    );
-
-  if (!booking) {
-    throw new Error(
-      "Agendamento não encontrado.",
-    );
-  }
-
-  const updatedBooking: Booking = {
-    ...booking,
-    confirmed: true,
-  };
-
-  const updatedBookings =
-    bookings.map(
-      (currentBooking) =>
-        currentBooking.id ===
-        bookingId
-          ? updatedBooking
-          : currentBooking,
-    );
-
-  saveBookings(
-    updatedBookings,
-  );
-
-  return updatedBooking;
 }

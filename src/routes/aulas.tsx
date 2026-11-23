@@ -1,12 +1,10 @@
-import { logout, requirePatient } from "@/lib/auth";
+import { getPatient, logout, requirePatient } from "@/lib/auth";
 import {
   createFileRoute,
   useNavigate,
 } from "@tanstack/react-router";
 
 import {
-  useEffect,
-  useMemo,
   useState,
 } from "react";
 
@@ -22,23 +20,9 @@ import { PatientLayout } from "@/components/layout/PatientLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-import {
-  Booking,
-  Student,
-  getBookings,
-  getSession,
-  saveBookings,
-  updateStudent,
-} from "@/lib/clinic-store";
-
-import {
-  addNotification,
-} from "@/lib/notification-store";
-
-import {
-  toast,
-  Toaster,
-} from "sonner";
+import { calendarDate, useAppointmentChange, useAppointments, useSessionBalance, type Appointment } from "@/lib/scheduling";
+import { SchedulingFeedback } from "@/components/dashboard/SchedulingFeedback";
+import { Toaster } from "sonner";
 
 export const Route = createFileRoute("/aulas")({
   ssr: false,
@@ -57,81 +41,18 @@ type SidebarSection =
 function ClassesPage() {
   const navigate = useNavigate();
 
-  const [
-    student,
-    setStudent,
-  ] = useState<Student | null>(
-    null,
-  );
+  const student = getPatient();
+  const [bookingToCancel, setBookingToCancel] = useState<Appointment | null>(null);
+  const appointments = useAppointments();
+  const balance = useSessionBalance();
+  const change = useAppointmentChange();
+  const myBookings = appointments.data ?? [];
 
-  const [
-    bookings,
-    setBookings,
-  ] = useState<Booking[]>([]);
-
-  const [
-    ready,
-    setReady,
-  ] = useState(false);
-
-  /*
-   * Guarda a aula que o paciente
-   * está tentando cancelar.
-   *
-   * Enquanto houver uma aula aqui,
-   * o modal de confirmação aparece.
-   */
-  const [
-    bookingToCancel,
-    setBookingToCancel,
-  ] = useState<Booking | null>(
-    null,
-  );
-
-  /*
-   * Carrega o paciente atual
-   * e seus agendamentos.
-   */
-  useEffect(() => {
-    const currentStudent =
-      getSession();
-
-    if (!currentStudent) {
-      navigate({
-        to: "/paciente",
-        replace: true,
-      });
-
-      return;
-    }
-
-    setStudent(
-      currentStudent,
-    );
-
-    setBookings(
-      getBookings(),
-    );
-
-    setReady(true);
-  }, [navigate]);
-
-  /*
-   * Logout.
-   */
   const handleLogout = () => {
     logout();
-    setStudent(null);
-
-    navigate({
-      to: "/acesso",
-      replace: true,
-    });
+    void navigate({ to: "/acesso", replace: true });
   };
 
-  /*
-   * Navegação lateral.
-   */
   const handleNavigation = (
     section: SidebarSection,
   ) => {
@@ -201,176 +122,14 @@ function ClassesPage() {
    * Mostra somente as próximas aulas
    * do paciente e coloca em ordem.
    */
-  const myBookings =
-    useMemo(() => {
-      if (!student) {
-        return [];
-      }
+  const confirmCancelBooking = () => {
+    if (!bookingToCancel || change.isPending) return;
+    change.mutate({ type: "cancel", id: bookingToCancel.id }, {
+      onSuccess: () => setBookingToCancel(null),
+    });
+  };
 
-      return bookings
-        .filter(
-          (booking) =>
-            booking.studentId ===
-            student.id,
-        )
-        .filter(
-          (booking) => {
-            const bookingDate =
-              new Date(
-                `${booking.date}T${booking.time}:00`,
-              );
-
-            return (
-              bookingDate.getTime() >=
-              Date.now()
-            );
-          },
-        )
-        .sort(
-          (
-            bookingA,
-            bookingB,
-          ) =>
-            `${bookingA.date}T${bookingA.time}`.localeCompare(
-              `${bookingB.date}T${bookingB.time}`,
-            ),
-        );
-    }, [
-      bookings,
-      student,
-    ]);
-
-  /*
-   * O cancelamento real acontece
-   * somente depois da confirmação
-   * no modal.
-   */
-  const confirmCancelBooking =
-    () => {
-      if (
-        !student ||
-        !bookingToCancel
-      ) {
-        return;
-      }
-
-      const booking =
-        bookingToCancel;
-
-      const updatedBookings =
-        getBookings().filter(
-          (
-            currentBooking,
-          ) =>
-            currentBooking.id !==
-            booking.id,
-        );
-
-      saveBookings(
-        updatedBookings,
-      );
-
-      setBookings(
-        updatedBookings,
-      );
-
-      const classDate =
-        new Date(
-          `${booking.date}T${booking.time}:00`,
-        );
-
-      const differenceInHours =
-        (classDate.getTime() -
-          Date.now()) /
-        36e5;
-
-      const formattedDate =
-        new Date(
-          `${booking.date}T00:00:00`,
-        ).toLocaleDateString(
-          "pt-BR",
-        );
-
-      /*
-       * Cancelamento com 6 horas
-       * ou mais:
-       *
-       * a sessão volta para
-       * o pacote do paciente.
-       */
-      if (
-        differenceInHours >= 6
-      ) {
-        const updatedStudent: Student = {
-          ...student,
-          sessionsRemaining:
-            student.sessionsRemaining +
-            1,
-        };
-
-        updateStudent(
-          updatedStudent,
-        );
-
-        setStudent(
-          updatedStudent,
-        );
-
-        addNotification({
-          studentId:
-            student.id,
-          bookingId:
-            booking.id,
-          title:
-            "Aula cancelada",
-          description: `Sua aula com Prof. ${booking.instructor} do dia ${formattedDate} às ${booking.time} foi cancelada. A sessão foi devolvida ao seu pacote.`,
-          time: "Agora",
-          type: "cancelamento",
-        });
-
-        toast.success(
-          "Aula cancelada. A sessão foi devolvida ao seu pacote.",
-        );
-      } else {
-        /*
-         * Menos de 6 horas:
-         *
-         * a aula é cancelada,
-         * mas a sessão não retorna
-         * para o pacote.
-         */
-        addNotification({
-          studentId:
-            student.id,
-          bookingId:
-            booking.id,
-          title:
-            "Aula cancelada",
-          description: `Sua aula com Prof. ${booking.instructor} do dia ${formattedDate} às ${booking.time} foi cancelada. Como faltavam menos de 6 horas, a sessão não foi devolvida ao pacote.`,
-          time: "Agora",
-          type: "cancelamento",
-        });
-
-        toast.warning(
-          "Aula cancelada. Como faltavam menos de 6 horas, a sessão não foi devolvida ao pacote.",
-        );
-      }
-
-      /*
-       * Fecha o modal depois
-       * do cancelamento.
-       */
-      setBookingToCancel(
-        null,
-      );
-    };
-
-  if (
-    !ready ||
-    !student
-  ) {
-    return null;
-  }
+  if (!student) return null;
 
   return (
     <PatientLayout
@@ -413,7 +172,7 @@ function ClassesPage() {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-slate-950">
-              {myBookings.length}
+              {appointments.data?.length ?? "—"}
             </p>
           </div>
 
@@ -425,7 +184,7 @@ function ClassesPage() {
 
             <p className="mt-1 text-2xl font-bold text-primary">
               {
-                student.sessionsRemaining
+                balance.data?.sessoesDisponiveis ?? "—"
               }
             </p>
           </div>
@@ -445,9 +204,9 @@ function ClassesPage() {
           </Button>
         </div>
 
-        {/* SEM AULAS */}
-        {myBookings.length ===
-        0 ? (
+        <SchedulingFeedback query={appointments} />
+        <SchedulingFeedback query={balance} />
+        {appointments.isSuccess && (myBookings.length === 0 ? (
           <Card className="mt-6 flex flex-col items-center justify-center p-12 text-center">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <CalendarDays className="h-8 w-8" />
@@ -503,9 +262,7 @@ function ClassesPage() {
                       </p>
 
                       <p className="mt-1 font-semibold capitalize text-slate-950">
-                        {new Date(
-                          `${booking.date}T00:00:00`,
-                        ).toLocaleDateString(
+                        {calendarDate(booking.data).toLocaleDateString(
                           "pt-BR",
                           {
                             weekday:
@@ -528,7 +285,7 @@ function ClassesPage() {
                         <Clock3 className="h-4 w-4 text-primary" />
 
                         {
-                          booking.time
+                          booking.horario
                         }
                       </div>
                     </div>
@@ -544,13 +301,22 @@ function ClassesPage() {
 
                         Prof.{" "}
                         {
-                          booking.instructor
+                          booking.instrutor
                         }
                       </div>
                     </div>
 
                     {/* CANCELAR */}
-                    <div className="ml-auto">
+                    <div className="ml-auto flex flex-wrap items-center gap-2">
+                      <span className="text-sm text-slate-600">Agendada</span>
+                      {booking.intencaoPresencaConfirmadaEm ? (
+                        <span className="text-sm font-medium text-primary">Intenção de comparecer confirmada</span>
+                      ) : (
+                        <Button type="button" variant="outline" disabled={change.isPending}
+                          onClick={() => change.mutate({ type: "confirm", id: booking.id })}>
+                          Confirmar intenção de comparecer
+                        </Button>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
@@ -569,7 +335,7 @@ function ClassesPage() {
               ),
             )}
           </div>
-        )}
+        ))}
 
         {/* REGRA */}
         <p className="mt-6 text-center text-xs text-muted-foreground">
@@ -609,9 +375,7 @@ function ClassesPage() {
                 </span>
 
                 <span className="text-sm font-semibold capitalize text-slate-950">
-                  {new Date(
-                    `${bookingToCancel.date}T00:00:00`,
-                  ).toLocaleDateString(
+                  {calendarDate(bookingToCancel.data).toLocaleDateString(
                     "pt-BR",
                     {
                       weekday:
@@ -632,7 +396,7 @@ function ClassesPage() {
 
                 <span className="text-sm font-semibold text-slate-950">
                   {
-                    bookingToCancel.time
+                    bookingToCancel.horario
                   }
                 </span>
               </div>
@@ -646,7 +410,7 @@ function ClassesPage() {
                 <span className="text-sm font-semibold text-slate-950">
                   Prof.{" "}
                   {
-                    bookingToCancel.instructor
+                    bookingToCancel.instrutor
                   }
                 </span>
               </div>
@@ -687,9 +451,8 @@ function ClassesPage() {
 
               <Button
                 type="button"
-                onClick={
-                  confirmCancelBooking
-                }
+                disabled={change.isPending}
+                onClick={confirmCancelBooking}
                 className="bg-red-600 text-white hover:bg-red-700"
               >
                 Confirmar cancelamento
